@@ -20,7 +20,14 @@ let db: Database.Database | null = null;
 let currentSessionId: string | null = null;
 let boardSessionOnly = false;
 let inboxSessionOnly = false;
-let eventHandler: ((event: { type: "message" | "dm"; id: string; author: string; recipient?: string }) => void) | undefined;
+let eventHandler:
+	| ((event: {
+			type: "message" | "dm";
+			id: string;
+			author: string;
+			recipient?: string;
+	  }) => void)
+	| undefined;
 
 export function setCurrentSession(sessionId: string): void {
 	currentSessionId = sessionId;
@@ -158,9 +165,12 @@ function initSchema(db: Database.Database) {
 
 	for (const table of ["messages", "replies", "inbox"] as const) {
 		try {
-			if (table === "messages") db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT");
-			if (table === "replies") db.exec("ALTER TABLE replies ADD COLUMN session_id TEXT");
-			if (table === "inbox") db.exec("ALTER TABLE inbox ADD COLUMN session_id TEXT");
+			if (table === "messages")
+				db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT");
+			if (table === "replies")
+				db.exec("ALTER TABLE replies ADD COLUMN session_id TEXT");
+			if (table === "inbox")
+				db.exec("ALTER TABLE inbox ADD COLUMN session_id TEXT");
 		} catch {
 			// Column already exists.
 		}
@@ -374,7 +384,9 @@ export function searchMessages(query: string, limit = 20): Message[] {
 	// FTS5 MATCH requires non-empty query; fallback for empty
 	const q = query.trim() || "*";
 	const scope = boardSessionOnly ? " AND m.session_id = ?" : "";
-	const params = boardSessionOnly ? [q, currentSessionId ?? "", limit] : [q, limit];
+	const params = boardSessionOnly
+		? [q, currentSessionId ?? "", limit]
+		: [q, limit];
 	const rows = d
 		.prepare(`
     SELECT m.* FROM messages m JOIN messages_fts f ON m.id = f.message_id
@@ -413,9 +425,20 @@ export function createReply(
 	const now = Date.now();
 	d.prepare(
 		"INSERT INTO replies (id, message_id, author, timestamp, body, parent_reply_id, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-	).run(id, messageId, author, now, body, parentReplyId ?? null, currentSessionId);
+	).run(
+		id,
+		messageId,
+		author,
+		now,
+		body,
+		parentReplyId ?? null,
+		currentSessionId,
+	);
 	if (currentSessionId) {
-		d.prepare("UPDATE replies SET session_id = ? WHERE id = ?").run(currentSessionId, id);
+		d.prepare("UPDATE replies SET session_id = ? WHERE id = ?").run(
+			currentSessionId,
+			id,
+		);
 	}
 	// M4: store mentions in replies
 	for (const mentioned of extractMentions(body)) {
@@ -462,13 +485,18 @@ export function sendDirectMessage(
 	const d = getDb();
 	const id = randomUUID();
 	const now = Date.now();
-	const recipient = d.prepare("SELECT session_id FROM agents WHERE id = ?").get(toAgent) as { session_id?: string } | undefined;
+	const recipient = d
+		.prepare("SELECT session_id FROM agents WHERE id = ?")
+		.get(toAgent) as { session_id?: string } | undefined;
 	const inboxSessionId = recipient?.session_id ?? currentSessionId;
 	d.prepare(
 		"INSERT INTO inbox (id, from_agent, to_agent, timestamp, subject, body, session_id, read) VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
 	).run(id, fromAgent, toAgent, now, subject, body, inboxSessionId);
 	if (inboxSessionId) {
-		d.prepare("UPDATE inbox SET session_id = ? WHERE id = ?").run(inboxSessionId, id);
+		d.prepare("UPDATE inbox SET session_id = ? WHERE id = ?").run(
+			inboxSessionId,
+			id,
+		);
 	}
 	eventHandler?.({ type: "dm", id, author: fromAgent, recipient: toAgent });
 	return getDirectMessage(id)!;
@@ -488,9 +516,13 @@ export function getInbox(agentId: string, unreadOnly = false): DirectMessage[] {
 		? "WHERE to_agent = ? AND read = 0"
 		: "WHERE to_agent = ?";
 	const scope = inboxSessionOnly ? " AND session_id = ?" : "";
-	const params = inboxSessionOnly ? [agentId, currentSessionId ?? ""] : [agentId];
+	const params = inboxSessionOnly
+		? [agentId, currentSessionId ?? ""]
+		: [agentId];
 	return d
-		.prepare(`SELECT * FROM inbox ${where}${scope} ORDER BY timestamp DESC LIMIT 50`)
+		.prepare(
+			`SELECT * FROM inbox ${where}${scope} ORDER BY timestamp DESC LIMIT 50`,
+		)
 		.all(...params) as DirectMessage[];
 }
 
@@ -539,7 +571,9 @@ export function removeBookmark(agentId: string, messageId: string): void {
 export function clearBoard(): void {
 	const d = getDb();
 	d.pragma("foreign_keys = OFF");
-	d.exec("DELETE FROM bookmarks; DELETE FROM mentions; DELETE FROM replies; DELETE FROM messages;");
+	d.exec(
+		"DELETE FROM bookmarks; DELETE FROM mentions; DELETE FROM replies; DELETE FROM messages;",
+	);
 	d.pragma("foreign_keys = ON");
 }
 
@@ -552,13 +586,25 @@ export function setSessionOnly(board: boolean, inbox: boolean): void {
 	inboxSessionOnly = inbox;
 }
 
-export function getInboxSince(agentId: string, timestamp: number): DirectMessage[] {
+export function getInboxSince(
+	agentId: string,
+	timestamp: number,
+): DirectMessage[] {
 	const scope = inboxSessionOnly ? " AND session_id = ?" : "";
-	const params = inboxSessionOnly ? [agentId, timestamp, currentSessionId ?? ""] : [agentId, timestamp];
-	return getDb().prepare(`SELECT * FROM inbox WHERE to_agent = ? AND timestamp > ?${scope} ORDER BY timestamp ASC`).all(...params) as DirectMessage[];
+	const params = inboxSessionOnly
+		? [agentId, timestamp, currentSessionId ?? ""]
+		: [agentId, timestamp];
+	return getDb()
+		.prepare(
+			`SELECT * FROM inbox WHERE to_agent = ? AND timestamp > ?${scope} ORDER BY timestamp ASC`,
+		)
+		.all(...params) as DirectMessage[];
 }
 
-export function getMessagesSince(timestamp: number, excludeAuthor?: string): Message[] {
+export function getMessagesSince(
+	timestamp: number,
+	excludeAuthor?: string,
+): Message[] {
 	const d = getDb();
 	const conditions = ["timestamp > ?"];
 	const params: unknown[] = [timestamp];
@@ -570,7 +616,11 @@ export function getMessagesSince(timestamp: number, excludeAuthor?: string): Mes
 		conditions.push("author != ?");
 		params.push(excludeAuthor);
 	}
-	return d.prepare(`SELECT * FROM messages WHERE ${conditions.join(" AND ")} ORDER BY timestamp ASC LIMIT 100`).all(...params) as Message[];
+	return d
+		.prepare(
+			`SELECT * FROM messages WHERE ${conditions.join(" AND ")} ORDER BY timestamp ASC LIMIT 100`,
+		)
+		.all(...params) as Message[];
 }
 
 export function resetAll(): void {

@@ -179,9 +179,16 @@ export function registerCommands(pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("mb-clear-board", {
-		description: "Clear all public messageboard posts, replies, mentions, and bookmarks",
+		description:
+			"Clear all public messageboard posts, replies, mentions, and bookmarks",
 		handler: async (_args, ctx) => {
-			if (!(await ctx.ui.confirm("Clear messageboard?", "Delete all board posts, replies, mentions, and bookmarks?"))) return;
+			if (
+				!(await ctx.ui.confirm(
+					"Clear messageboard?",
+					"Delete all board posts, replies, mentions, and bookmarks?",
+				))
+			)
+				return;
 			db.clearBoard();
 			ctx.ui.notify("Messageboard cleared.", "info");
 		},
@@ -190,25 +197,39 @@ export function registerCommands(pi: ExtensionAPI) {
 	pi.registerCommand("mb-clear-inbox", {
 		description: "Clear your direct message inbox",
 		handler: async (_args, ctx) => {
-			if (!(await ctx.ui.confirm("Clear inbox?", "Delete all direct messages addressed to you?"))) return;
+			if (
+				!(await ctx.ui.confirm(
+					"Clear inbox?",
+					"Delete all direct messages addressed to you?",
+				))
+			)
+				return;
 			db.clearInbox(getMyAgentId());
 			ctx.ui.notify("Inbox cleared.", "info");
 		},
 	});
 
 	pi.registerCommand("mb-scope-board", {
-		description: "Toggle board visibility between all sessions and current session",
+		description:
+			"Toggle board visibility between all sessions and current session",
 		handler: async (_args, ctx) => {
 			const enabled = db.toggleBoardSessionOnly();
-			ctx.ui.notify(`Board scope: ${enabled ? "current session only" : "all sessions"}.`, "info");
+			ctx.ui.notify(
+				`Board scope: ${enabled ? "current session only" : "all sessions"}.`,
+				"info",
+			);
 		},
 	});
 
 	pi.registerCommand("mb-scope-inbox", {
-		description: "Toggle inbox visibility between all sessions and current session",
+		description:
+			"Toggle inbox visibility between all sessions and current session",
 		handler: async (_args, ctx) => {
 			const enabled = db.toggleInboxSessionOnly();
-			ctx.ui.notify(`Inbox scope: ${enabled ? "current session only" : "all sessions"}.`, "info");
+			ctx.ui.notify(
+				`Inbox scope: ${enabled ? "current session only" : "all sessions"}.`,
+				"info",
+			);
 		},
 	});
 

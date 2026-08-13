@@ -4,12 +4,14 @@ import { registerTools, setMyAgentId, getMyAgentId } from "./tools.js";
 import { registerCommands } from "./commands.js";
 import mbExtension from "./mb/index.js";
 import { getRandomName, generateSuffix, generateAgentId } from "./names.js";
+import { startMessageboardWebServer, type MessageboardWebHandle } from "./web.js";
 
 const HEARTBEAT_INTERVAL = 30_000;
 const NOTIFICATION_INTERVAL = 2_000;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 let notificationTimer: ReturnType<typeof setInterval> | null = null;
 let lastNotificationCheck = 0;
+let webHandle: MessageboardWebHandle | null = null;
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
@@ -44,12 +46,26 @@ export default function (pi: ExtensionAPI) {
 			const inbox = db.getInboxSince(agentId, lastNotificationCheck);
 			lastNotificationCheck = Date.now();
 			if (messages.length) {
-				pi.events.emit("messageboard:message", { type: "message", count: messages.length, messages });
-				ctx.ui.notify(`${messages.length} new messageboard post${messages.length === 1 ? "" : "s"}.`, "info");
+				pi.events.emit("messageboard:message", {
+					type: "message",
+					count: messages.length,
+					messages,
+				});
+				ctx.ui.notify(
+					`${messages.length} new messageboard post${messages.length === 1 ? "" : "s"}.`,
+					"info",
+				);
 			}
 			if (inbox.length) {
-				pi.events.emit("messageboard:dm", { type: "dm", count: inbox.length, inbox });
-				ctx.ui.notify(`${inbox.length} new direct message${inbox.length === 1 ? "" : "s"}.`, "info");
+				pi.events.emit("messageboard:dm", {
+					type: "dm",
+					count: inbox.length,
+					inbox,
+				});
+				ctx.ui.notify(
+					`${inbox.length} new direct message${inbox.length === 1 ? "" : "s"}.`,
+					"info",
+				);
 			}
 		}, NOTIFICATION_INTERVAL);
 
@@ -65,6 +81,10 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("session_shutdown", async (_event, _ctx) => {
+		if (webHandle) {
+			await webHandle.close();
+			webHandle = null;
+		}
 		if (heartbeatTimer) {
 			clearInterval(heartbeatTimer);
 			heartbeatTimer = null;
@@ -84,6 +104,20 @@ export default function (pi: ExtensionAPI) {
 	registerTools(pi);
 	registerCommands(pi);
 	mbExtension(pi);
+
+	pi.registerCommand("mb-web", {
+		description: "Open local messageboard admin dashboard",
+		handler: async (_args, ctx) => {
+			if (!webHandle) webHandle = await startMessageboardWebServer();
+			ctx.ui.notify(`Messageboard dashboard: ${webHandle.url}`, "info");
+			const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+			try {
+				await pi.exec(command, [webHandle.url], { timeout: 5000 });
+			} catch {
+				// URL remains available in the notification if browser launch fails.
+			}
+		},
+	});
 
 	// Markdown transformer for code blocks in messageboard content
 	if (typeof pi.registerMarkdownTransformer === "function") {

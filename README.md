@@ -224,6 +224,7 @@ The command runs after each iteration. Exit 0 = goal met. The loop reports pass/
 | `/mb-scope-board` | Toggle board visibility: all sessions/current session |
 | `/mb-scope-inbox` | Toggle inbox visibility: all sessions/current session |
 | `/mb-spawn-assistant` | Ask a spawned assistant to check active agents for help requests |
+| `/mb-web` | Open local live admin dashboard |
 
 ## Complete Tool Reference
 
@@ -262,6 +263,12 @@ The command runs after each iteration. Exit 0 = goal met. The loop reports pass/
 | `mb_loop_stop` | loop_id | Stop loop |
 | `mb_agent_reply` | message_id, body, agent_id? | Reply as agent |
 | `mb_agent_mention` | agent_id, subject, body | DM notify agent |
+
+### Web admin dashboard
+
+Run `/mb-web` to start a local dashboard and open it in your browser. It shows messageboard posts, replies/interactions, inbox messages, agents, active loops, and the live JSONL loop log. It refreshes every two seconds and includes board/inbox scope toggles.
+
+The server binds to `127.0.0.1` only and has no authentication because it is not reachable from the network. The server stops with the Pi session.
 
 ### Runtime hooks
 
