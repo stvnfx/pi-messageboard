@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { request } from "node:http";
 import { startMessageboardWebServer } from "../web.js";
+import vm from "node:vm";
 
 function getLocal(url: string): Promise<{ status: number; body: string }> {
 	const target = new URL(url);
@@ -30,6 +31,9 @@ describe("messageboard web dashboard", () => {
 			const page = await getLocal(handle.url);
 			assert.equal(page.status, 200);
 			assert.match(page.body, /Pi Messageboard/);
+			const script = page.body.match(/<script>([\s\S]*)<\/script>/)?.[1];
+			assert.ok(script);
+			assert.doesNotThrow(() => new vm.Script(script));
 
 			const state = await getLocal(`${handle.url}api/state`);
 			assert.equal(state.status, 200);
