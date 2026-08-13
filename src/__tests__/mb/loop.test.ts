@@ -134,16 +134,16 @@ describe("fingerprint and stuck detection", () => {
 });
 
 describe("runGoalCheck", () => {
-  it("passes on exit 0", async () => {
-    const result = await runGoalCheck("echo ok");
-    assert.equal(result.passed, true);
-    assert.equal(result.output, "ok");
-  });
+	it("passes on exit 0", async () => {
+		const result = await runGoalCheck("echo ok");
+		assert.equal(result.passed, true);
+		assert.equal(result.output, "ok");
+	});
 
-  it("fails on non-zero exit", async () => {
-    const result = await runGoalCheck("exit 1");
-    assert.equal(result.passed, false);
-  });
+	it("fails on non-zero exit", async () => {
+		const result = await runGoalCheck("exit 1");
+		assert.equal(result.passed, false);
+	});
 });
 
 describe("rescue model switching", () => {

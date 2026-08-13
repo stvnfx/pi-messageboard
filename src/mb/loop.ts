@@ -31,14 +31,25 @@ export interface GoalCheckResult {
 	output: string;
 }
 
-export async function runGoalCheck(command: string, timeoutMs = 30000): Promise<GoalCheckResult> {
+export async function runGoalCheck(
+	command: string,
+	timeoutMs = 30000,
+): Promise<GoalCheckResult> {
 	const { execSync } = await import("node:child_process");
 	try {
-		const output = execSync(command, { timeout: timeoutMs, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+		const output = execSync(command, {
+			timeout: timeoutMs,
+			encoding: "utf-8",
+			stdio: ["pipe", "pipe", "pipe"],
+		});
 		return { passed: true, output: output.trim().slice(0, 500) };
 	} catch (err) {
 		const e = err as { stdout?: string; stderr?: string; message: string };
-		const output = [e.stdout, e.stderr].filter(Boolean).join("\n").trim().slice(0, 500);
+		const output = [e.stdout, e.stderr]
+			.filter(Boolean)
+			.join("\n")
+			.trim()
+			.slice(0, 500);
 		return { passed: false, output: output || e.message };
 	}
 }
@@ -158,7 +169,10 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				Type.String({ description: "Stronger model for stuck loops" }),
 			),
 			check_command: Type.Optional(
-				Type.String({ description: "Shell command to verify goal completion (exit 0 = done)" }),
+				Type.String({
+					description:
+						"Shell command to verify goal completion (exit 0 = done)",
+				}),
 			),
 			spawn_count: Type.Optional(
 				Type.Number({ description: "Number of agents to spawn (default 1)" }),

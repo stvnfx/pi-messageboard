@@ -105,7 +105,7 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 				description: "Task description (supports markdown)",
 			}),
 		}),
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const myId = getMyAgentId(ctx);
 			const agent = mbDb.getMbAgent(params.agent_id);
 			if (!agent) {
@@ -165,7 +165,7 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 			subject: Type.String({ description: "Broadcast subject" }),
 			body: Type.String({ description: "Broadcast body (supports markdown)" }),
 		}),
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const myId = getMyAgentId(ctx);
 			const online = mbDb.getOnlineMbAgents();
 
@@ -242,6 +242,86 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 					onlineCount: online.length,
 					loopCount: loops.length,
 				},
+			};
+		},
+	});
+
+	// ─── mb_agent_reply: Reply to a board message as spawned agent ──────
+	pi.registerTool({
+		name: "mb_agent_reply",
+		label: "MB Agent Reply",
+		description: "Reply to a message on the board as a spawned agent",
+		promptSnippet: "Reply as spawned agent",
+		promptGuidelines: [
+			"Use mb_agent_reply when a spawned agent needs to respond to a board message.",
+		],
+		parameters: Type.Object({
+			message_id: Type.String({ description: "ID of the message to reply to" }),
+			body: Type.String({ description: "Reply body (supports markdown)" }),
+			agent_id: Type.Optional(
+				Type.String({ description: "Agent ID replying (default: self)" }),
+			),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const agentId = params.agent_id || getMyAgentId(ctx);
+			const msg = boardDb.getMessage(params.message_id);
+			if (!msg) {
+				return {
+					content: [
+						{ type: "text", text: `Message "${params.message_id}" not found.` },
+					],
+					details: {},
+					isError: true,
+				};
+			}
+			boardDb.createReply(params.message_id, agentId, params.body);
+			return {
+				content: [
+					{
+						type: "text",
+						text: `Replied to "${msg.subject.slice(0, 40)}" as ${agentId}`,
+					},
+				],
+				details: { replyTo: params.message_id, agentId },
+			};
+		},
+	});
+
+	// ─── mb_agent_mention: Notify specific agent via DM ──────────────────
+	pi.registerTool({
+		name: "mb_agent_mention",
+		label: "MB Agent Mention",
+		description: "Send a direct message to notify a specific agent",
+		promptSnippet: "Mention agent via DM",
+		promptGuidelines: [
+			"Use mb_agent_mention to notify a specific agent about something on the board.",
+		],
+		parameters: Type.Object({
+			agent_id: Type.String({ description: "Agent ID to notify" }),
+			subject: Type.String({ description: "DM subject" }),
+			body: Type.String({ description: "DM body (supports markdown)" }),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+			const myId = getMyAgentId(ctx);
+			const target = mbDb.getMbAgent(params.agent_id);
+			if (!target) {
+				return {
+					content: [
+						{ type: "text", text: `Agent "${params.agent_id}" not found.` },
+					],
+					details: {},
+					isError: true,
+				};
+			}
+			boardDb.sendDirectMessage(myId, params.agent_id, params.subject, params.body);
+			return {
+				content: [
+					{
+						type: "text",
+						text: `DM sent to ${params.agent_id}: "${params.subject}"`,
+					},
+				],
+				details: { to: params.agent_id, subject: params.subject },
 			};
 		},
 	});
