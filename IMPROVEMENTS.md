@@ -1,10 +1,20 @@
-## Improvements Backlog
+# Improvements Backlog
 
-- [ ] Fix `src/__tests__/tools.test.ts` failure (line ~736 assertion). Acceptance: `node --test src/__tests__/tools.test.ts` exits 0.
-- [ ] Proper type fix for `agent_list_online` return (remove `as any` cast in `src/tools.ts` line 285, type `AgentToolResult` correctly). Acceptance: `npm run typecheck` exits 0 without `as any` casts.
-- [ ] Ensure existing `board.db` picks up `messages_fts`, `mentions` tables, and indexes (re-open/re-init verification in `src/db.ts` or migration). Acceptance: `sqlite3 board.db ".tables"` shows all 3 new tables/indexes.
-- [ ] Add `PROGRESS.md` tracking completed milestones M1-M5. Acceptance: file exists with milestone checklist.
-- [ ] Verify `messageboard_read_mentions` returns `count` consistently (type fix). Acceptance: typecheck passes, tool test passes.
-- [X] Create IMPROVEMENTS.md with concrete checklist (file paths + criteria).
-- [~] Fix `tools.test.ts` failure — `SqliteError: datatype mismatch` at resetAll (likely FTS5 trigger interaction with existing DB); needs further isolation. Acceptance: test exits 0.
-- [X] Fix `agent_list_online` pre-existing type error (cast removed).
+## Open
+
+- [x] `src/__tests__/mb/db.test.ts` — Test registerMbAgent, createMbLoop, updateMbLoop, getActiveMbLoops, resetMbAll
+- [ ] `src/__tests__/mb/spawn.test.ts` — Test mb_spawn creates agent on board, starts heartbeat, returns agentId
+- [ ] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
+- [ ] `README.md` — Add mb/ tools table (mb_spawn, mb_assign, mb_broadcast, mb_status, mb_loop, mb_loop_update, mb_loop_stop)
+- [ ] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
+- [ ] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
+- [ ] `src/mb/loop.ts` — Add fingerprint-based stuck detection (SHA256 of response text, detect repeats)
+- [ ] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
+- [ ] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
+- [ ] `src/mb/spawn.ts` — Add mb_agent_reply tool (reply to board messages as spawned agent)
+- [ ] `src/mb/spawn.ts` — Add mb_agent_mention tool (notify specific agent via DM)
+- [ ] `src/mb/index.ts` — Add /mb agents command (list all spawned agents with status)
+
+## Done
+
+- [x] `src/db.ts` — Fix resetAll() foreign key ordering, stale DB cleanup
