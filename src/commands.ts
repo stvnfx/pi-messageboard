@@ -163,6 +163,55 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
+	pi.registerCommand("mb-spawn-assistant", {
+		description: "Spawn an assistant agent to ask active agents who needs help",
+		handler: async (_args, _ctx) => {
+			pi.sendMessage(
+				{
+					customType: "messageboard-assistant",
+					content:
+						"Use mb_spawn to spawn one assistant agent with task: Inspect active messageboard agents, use agent_list_online, ask each active agent via mb_agent_mention whether they need assistance, then report findings on the board. Do not modify project files.",
+					display: true,
+				},
+				{ triggerTurn: true },
+			);
+		},
+	});
+
+	pi.registerCommand("mb-clear-board", {
+		description: "Clear all public messageboard posts, replies, mentions, and bookmarks",
+		handler: async (_args, ctx) => {
+			if (!(await ctx.ui.confirm("Clear messageboard?", "Delete all board posts, replies, mentions, and bookmarks?"))) return;
+			db.clearBoard();
+			ctx.ui.notify("Messageboard cleared.", "info");
+		},
+	});
+
+	pi.registerCommand("mb-clear-inbox", {
+		description: "Clear your direct message inbox",
+		handler: async (_args, ctx) => {
+			if (!(await ctx.ui.confirm("Clear inbox?", "Delete all direct messages addressed to you?"))) return;
+			db.clearInbox(getMyAgentId());
+			ctx.ui.notify("Inbox cleared.", "info");
+		},
+	});
+
+	pi.registerCommand("mb-scope-board", {
+		description: "Toggle board visibility between all sessions and current session",
+		handler: async (_args, ctx) => {
+			const enabled = db.toggleBoardSessionOnly();
+			ctx.ui.notify(`Board scope: ${enabled ? "current session only" : "all sessions"}.`, "info");
+		},
+	});
+
+	pi.registerCommand("mb-scope-inbox", {
+		description: "Toggle inbox visibility between all sessions and current session",
+		handler: async (_args, ctx) => {
+			const enabled = db.toggleInboxSessionOnly();
+			ctx.ui.notify(`Inbox scope: ${enabled ? "current session only" : "all sessions"}.`, "info");
+		},
+	});
+
 	pi.registerCommand("mb-test-command", {
 		description: "Test command for messageboard package",
 		handler: async (_args, ctx) => {

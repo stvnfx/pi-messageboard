@@ -17,6 +17,36 @@ const DB_DIR = join(homedir(), ".pi", "agent", "messageboard");
 const DB_PATH = join(DB_DIR, "board.db");
 
 let db: Database.Database | null = null;
+let currentSessionId: string | null = null;
+let boardSessionOnly = false;
+let inboxSessionOnly = false;
+let eventHandler: ((event: { type: "message" | "dm"; id: string; author: string; recipient?: string }) => void) | undefined;
+
+export function setCurrentSession(sessionId: string): void {
+	currentSessionId = sessionId;
+}
+
+export function setEventHandler(handler: typeof eventHandler): void {
+	eventHandler = handler;
+}
+
+export function isBoardSessionOnly(): boolean {
+	return boardSessionOnly;
+}
+
+export function isInboxSessionOnly(): boolean {
+	return inboxSessionOnly;
+}
+
+export function toggleBoardSessionOnly(): boolean {
+	boardSessionOnly = !boardSessionOnly;
+	return boardSessionOnly;
+}
+
+export function toggleInboxSessionOnly(): boolean {
+	inboxSessionOnly = !inboxSessionOnly;
+	return inboxSessionOnly;
+}
 
 function getDb(): Database.Database {
 	if (!db) {
@@ -48,6 +78,7 @@ function initSchema(db: Database.Database) {
       category TEXT NOT NULL,
       subject TEXT NOT NULL,
       body TEXT NOT NULL,
+      session_id TEXT,
       tags TEXT DEFAULT '[]',
       status TEXT DEFAULT 'open',
       assigned_to TEXT,
@@ -61,6 +92,7 @@ function initSchema(db: Database.Database) {
       author TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
       body TEXT NOT NULL,
+      session_id TEXT,
       FOREIGN KEY (message_id) REFERENCES messages(id),
       FOREIGN KEY (parent_reply_id) REFERENCES replies(id),
       FOREIGN KEY (author) REFERENCES agents(id)
@@ -73,6 +105,7 @@ function initSchema(db: Database.Database) {
       timestamp INTEGER NOT NULL,
       subject TEXT NOT NULL,
       body TEXT NOT NULL,
+      session_id TEXT,
       read INTEGER DEFAULT 0,
       FOREIGN KEY (from_agent) REFERENCES agents(id),
       FOREIGN KEY (to_agent) REFERENCES agents(id)
@@ -122,6 +155,16 @@ function initSchema(db: Database.Database) {
 	db.exec(
 		`CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF subject, body ON messages BEGIN DELETE FROM messages_fts WHERE message_id = old.id; INSERT INTO messages_fts(message_id, subject, body) VALUES (new.id, new.subject, new.body); END;`,
 	);
+
+	for (const table of ["messages", "replies", "inbox"] as const) {
+		try {
+			if (table === "messages") db.exec("ALTER TABLE messages ADD COLUMN session_id TEXT");
+			if (table === "replies") db.exec("ALTER TABLE replies ADD COLUMN session_id TEXT");
+			if (table === "inbox") db.exec("ALTER TABLE inbox ADD COLUMN session_id TEXT");
+		} catch {
+			// Column already exists.
+		}
+	}
 
 	// M2: apply versioned migrations
 	db.exec(
@@ -241,8 +284,8 @@ export function createMessage(
 	const id = randomUUID();
 	const now = Date.now();
 	d.prepare(`
-    INSERT INTO messages (id, author, timestamp, category, subject, body, tags, status, assigned_to)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO messages (id, author, timestamp, category, subject, body, session_id, tags, status, assigned_to)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
 		id,
 		author,
@@ -250,10 +293,12 @@ export function createMessage(
 		category,
 		subject,
 		body,
+		currentSessionId,
 		JSON.stringify(tags),
 		"open",
 		assignedTo ?? null,
 	);
+	eventHandler?.({ type: "message", id, author });
 	// M4: store mentions
 	for (const mentioned of extractMentions(body)) {
 		createMention(mentioned, id);
@@ -290,6 +335,10 @@ export function getMessages(
 	const conditions: string[] = [];
 	const params: any[] = [];
 
+	if (boardSessionOnly) {
+		conditions.push("session_id = ?");
+		params.push(currentSessionId ?? "");
+	}
 	if (opts.category) {
 		conditions.push("category = ?");
 		params.push(opts.category);
@@ -324,14 +373,16 @@ export function searchMessages(query: string, limit = 20): Message[] {
 	const d = getDb();
 	// FTS5 MATCH requires non-empty query; fallback for empty
 	const q = query.trim() || "*";
+	const scope = boardSessionOnly ? " AND m.session_id = ?" : "";
+	const params = boardSessionOnly ? [q, currentSessionId ?? "", limit] : [q, limit];
 	const rows = d
 		.prepare(`
     SELECT m.* FROM messages m JOIN messages_fts f ON m.id = f.message_id
-    WHERE messages_fts MATCH ?
+    WHERE messages_fts MATCH ?${scope}
     ORDER BY rank
     LIMIT ?
   `)
-		.all(q, limit) as any[];
+		.all(...params) as any[];
 	return rows.map((r) => ({ ...r, tags: parseTags(r.tags) }));
 }
 
@@ -361,8 +412,11 @@ export function createReply(
 	const id = randomUUID();
 	const now = Date.now();
 	d.prepare(
-		"INSERT INTO replies (id, message_id, author, timestamp, body, parent_reply_id) VALUES (?, ?, ?, ?, ?, ?)",
-	).run(id, messageId, author, now, body, parentReplyId ?? null);
+		"INSERT INTO replies (id, message_id, author, timestamp, body, parent_reply_id, session_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+	).run(id, messageId, author, now, body, parentReplyId ?? null, currentSessionId);
+	if (currentSessionId) {
+		d.prepare("UPDATE replies SET session_id = ? WHERE id = ?").run(currentSessionId, id);
+	}
 	// M4: store mentions in replies
 	for (const mentioned of extractMentions(body)) {
 		createMention(mentioned, messageId, id);
@@ -408,9 +462,15 @@ export function sendDirectMessage(
 	const d = getDb();
 	const id = randomUUID();
 	const now = Date.now();
+	const recipient = d.prepare("SELECT session_id FROM agents WHERE id = ?").get(toAgent) as { session_id?: string } | undefined;
+	const inboxSessionId = recipient?.session_id ?? currentSessionId;
 	d.prepare(
-		"INSERT INTO inbox (id, from_agent, to_agent, timestamp, subject, body, read) VALUES (?, ?, ?, ?, ?, ?, 0)",
-	).run(id, fromAgent, toAgent, now, subject, body);
+		"INSERT INTO inbox (id, from_agent, to_agent, timestamp, subject, body, session_id, read) VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
+	).run(id, fromAgent, toAgent, now, subject, body, inboxSessionId);
+	if (inboxSessionId) {
+		d.prepare("UPDATE inbox SET session_id = ? WHERE id = ?").run(inboxSessionId, id);
+	}
+	eventHandler?.({ type: "dm", id, author: fromAgent, recipient: toAgent });
 	return getDirectMessage(id)!;
 }
 
@@ -427,9 +487,11 @@ export function getInbox(agentId: string, unreadOnly = false): DirectMessage[] {
 	const where = unreadOnly
 		? "WHERE to_agent = ? AND read = 0"
 		: "WHERE to_agent = ?";
+	const scope = inboxSessionOnly ? " AND session_id = ?" : "";
+	const params = inboxSessionOnly ? [agentId, currentSessionId ?? ""] : [agentId];
 	return d
-		.prepare(`SELECT * FROM inbox ${where} ORDER BY timestamp DESC LIMIT 50`)
-		.all(agentId) as DirectMessage[];
+		.prepare(`SELECT * FROM inbox ${where}${scope} ORDER BY timestamp DESC LIMIT 50`)
+		.all(...params) as DirectMessage[];
 }
 
 export function markAsRead(id: string): void {
@@ -473,6 +535,43 @@ export function removeBookmark(agentId: string, messageId: string): void {
 }
 
 // ─── Utility ───────────────────────────────────────────────────────
+
+export function clearBoard(): void {
+	const d = getDb();
+	d.pragma("foreign_keys = OFF");
+	d.exec("DELETE FROM bookmarks; DELETE FROM mentions; DELETE FROM replies; DELETE FROM messages;");
+	d.pragma("foreign_keys = ON");
+}
+
+export function clearInbox(agentId: string): void {
+	getDb().prepare("DELETE FROM inbox WHERE to_agent = ?").run(agentId);
+}
+
+export function setSessionOnly(board: boolean, inbox: boolean): void {
+	boardSessionOnly = board;
+	inboxSessionOnly = inbox;
+}
+
+export function getInboxSince(agentId: string, timestamp: number): DirectMessage[] {
+	const scope = inboxSessionOnly ? " AND session_id = ?" : "";
+	const params = inboxSessionOnly ? [agentId, timestamp, currentSessionId ?? ""] : [agentId, timestamp];
+	return getDb().prepare(`SELECT * FROM inbox WHERE to_agent = ? AND timestamp > ?${scope} ORDER BY timestamp ASC`).all(...params) as DirectMessage[];
+}
+
+export function getMessagesSince(timestamp: number, excludeAuthor?: string): Message[] {
+	const d = getDb();
+	const conditions = ["timestamp > ?"];
+	const params: unknown[] = [timestamp];
+	if (boardSessionOnly) {
+		conditions.push("session_id = ?");
+		params.push(currentSessionId ?? "");
+	}
+	if (excludeAuthor) {
+		conditions.push("author != ?");
+		params.push(excludeAuthor);
+	}
+	return d.prepare(`SELECT * FROM messages WHERE ${conditions.join(" AND ")} ORDER BY timestamp ASC LIMIT 100`).all(...params) as Message[];
+}
 
 export function resetAll(): void {
 	const d = getDb();

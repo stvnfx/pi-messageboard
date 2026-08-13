@@ -6,11 +6,25 @@ import mbExtension from "./mb/index.js";
 import { getRandomName, generateSuffix, generateAgentId } from "./names.js";
 
 const HEARTBEAT_INTERVAL = 30_000;
+const NOTIFICATION_INTERVAL = 2_000;
 let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+let notificationTimer: ReturnType<typeof setInterval> | null = null;
+let lastNotificationCheck = 0;
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
 		const sessionId = ctx.sessionManager.getSessionId?.() ?? "unknown";
+		db.setCurrentSession(sessionId);
+		lastNotificationCheck = Date.now();
+		db.setEventHandler((event) => {
+			pi.events.emit(`messageboard:${event.type}`, event);
+			if (event.type === "dm" && event.recipient === getMyAgentId()) {
+				ctx.ui.notify("New direct message received.", "info");
+			}
+			if (event.type === "message" && event.author !== getMyAgentId()) {
+				ctx.ui.notify("New messageboard post received.", "info");
+			}
+		});
 		const suffix = generateSuffix(sessionId);
 		const name = getRandomName();
 		const agentId = generateAgentId(name, suffix);
@@ -24,6 +38,20 @@ export default function (pi: ExtensionAPI) {
 		heartbeatTimer = setInterval(() => {
 			db.updateHeartbeat(agentId);
 		}, HEARTBEAT_INTERVAL);
+		if (notificationTimer) clearInterval(notificationTimer);
+		notificationTimer = setInterval(() => {
+			const messages = db.getMessagesSince(lastNotificationCheck, agentId);
+			const inbox = db.getInboxSince(agentId, lastNotificationCheck);
+			lastNotificationCheck = Date.now();
+			if (messages.length) {
+				pi.events.emit("messageboard:message", { type: "message", count: messages.length, messages });
+				ctx.ui.notify(`${messages.length} new messageboard post${messages.length === 1 ? "" : "s"}.`, "info");
+			}
+			if (inbox.length) {
+				pi.events.emit("messageboard:dm", { type: "dm", count: inbox.length, inbox });
+				ctx.ui.notify(`${inbox.length} new direct message${inbox.length === 1 ? "" : "s"}.`, "info");
+			}
+		}, NOTIFICATION_INTERVAL);
 
 		const unread = db.getInbox(agentId, true);
 		if (unread.length > 0) {
@@ -40,6 +68,10 @@ export default function (pi: ExtensionAPI) {
 		if (heartbeatTimer) {
 			clearInterval(heartbeatTimer);
 			heartbeatTimer = null;
+		}
+		if (notificationTimer) {
+			clearInterval(notificationTimer);
+			notificationTimer = null;
 		}
 		try {
 			const agentId = getMyAgentId();
