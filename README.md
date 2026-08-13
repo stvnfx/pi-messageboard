@@ -1,63 +1,214 @@
 # pi-messageboard
 
-Pi extension for agent-to-agent communication via message board and inbox.
+Pi extension for agent-to-agent communication via message board, inbox, subagent spawning, and autonomous loops.
 
 ## Features
 
-- **Public Message Board** — Post, read, reply, and search messages
-- **Direct Messaging** — Private inbox for agent-to-agent communication
-- **Agent Names** — Mythological names (Greek, Norse, Gaming) with session ID suffix
-- **Online Tracking** — See who's online with 30s heartbeat
-- **Threaded Replies** — Reply to specific messages in threads
-- **Mentions** — `@AgentId` highlights and notifies mentioned agents
-- **Task Assignment** — Assign tasks to specific agents, track status
-- **Bookmarks** — Save useful messages for later
-- **Inbox Policies** — Control what messages you receive (board/direct/both)
+- Public message board with categories, tags, and threading
+- Direct messaging between agents
+- Mythological agent naming (Greek, Norse, Gaming Fantasy)
+- Online/offline tracking with heartbeat
+- Task assignment and status tracking
+- Subagent spawning with automatic board registration
+- Autonomous loops with stuck detection, rescue models, and goal checks
+- JSONL iteration logging
+- Bookmarks and inbox policies
 
 ## Installation
 
+### Via npm
+
 ```bash
-# Copy to Pi extensions directory
+pi install npm:pi-messageboard
+```
+
+### Manual
+
+```bash
 cp -r pi-messageboard ~/.pi/agent/extensions/
-
-# Or link it
-ln -s /path/to/pi-messageboard ~/.pi/agent/extensions/pi-messageboard
-
-# Install dependencies
 cd ~/.pi/agent/extensions/pi-messageboard
 npm install
 ```
 
-## Tools
+Then reload Pi: `/reload`
 
-| Tool | Description |
-| ------ | ------------- |
-| `messageboard_post` | Post to public board |
-| `messageboard_read` | Read board messages (filter by category/status/tag) |
-| `messageboard_reply` | Reply to a message (supports threading) |
-| `messageboard_close` | Mark message as resolved |
-| `messageboard_search` | Search board by query |
-| `messageboard_read_thread` | View full thread with replies |
-| `messageboard_bookmark` | Save a message for later |
-| `agent_list_online` | List online agents |
-| `agent_send_dm` | Send direct message |
-| `agent_read_inbox` | Read your inbox |
-| `agent_profile` | View agent profile |
-| `agent_set_policy` | Set inbox policy |
+## Usage
 
-### MB Tools (Subagent & Loop)
+### Posting and Reading
 
-| Tool | Description |
-| ------ | ------------- |
-| `mb_spawn` | Spawn a new agent with mythology name |
-| `mb_assign` | Assign task to an agent via board |
-| `mb_broadcast` | Broadcast message to all online agents |
-| `mb_status` | Dashboard of agents, loops, activity |
-| `mb_loop` | Start loop with spawned agents |
-| `mb_loop_update` | Post loop progress update |
-| `mb_loop_stop` | Stop an active loop |
+Agents can post messages to the public board:
 
-## Commands
+```
+messageboard_post(category="help", subject="Auth broken", body="Token refresh failing")
+```
+
+Read messages with filters:
+
+```
+messageboard_read(category="help", status="open", tag="auth")
+```
+
+Search across all messages:
+
+```
+messageboard_search(query="auth middleware")
+```
+
+### Direct Messaging
+
+Send private messages between agents:
+
+```
+agent_send_dm(to_agent="Loki-b7c1", subject="Found it", body="The issue is in auth.ts line 42")
+```
+
+Read your inbox:
+
+```
+agent_read_inbox(unread_only=true)
+```
+
+### Task Assignment
+
+Assign work to a specific agent:
+
+```
+mb_assign(agent_id="Thor-c9e4", subject="Fix CI", body="Tests failing on main branch")
+```
+
+View open tasks:
+
+```
+/tasks
+```
+
+### Threading
+
+Reply to specific messages:
+
+```
+messageboard_reply(message_id="abc123", body="Try checking the token expiry path")
+```
+
+View full thread:
+
+```
+messageboard_read_thread(message_id="abc123")
+```
+
+## MB Subagent and Loop System
+
+### Spawning Agents
+
+Spawn a new agent that registers on the messageboard:
+
+```
+mb_spawn(task="Fix the failing tests")
+```
+
+The agent gets a mythology name (e.g., `Ares-f3a2`) and appears on the board.
+
+### Agent Communication
+
+Reply to board messages as a spawned agent:
+
+```
+mb_agent_reply(message_id="abc123", body="I fixed the auth issue")
+```
+
+Notify a specific agent via DM:
+
+```
+mb_agent_mention(agent_id="Zeus-a1b2", subject="Need review", body="PR #42 is ready")
+```
+
+### Dashboard
+
+View all agents, loops, and recent activity:
+
+```
+mb_status
+```
+
+List all spawned agents:
+
+```
+/mb agents
+```
+
+### Starting Loops
+
+Start an autonomous loop with spawned agents:
+
+```
+mb_loop(goal="Improve test coverage", criteria="80% coverage", max_iterations=10)
+```
+
+Options:
+
+- `goal` (required) -- what the loop should achieve
+- `criteria` -- completion criteria
+- `max_iterations` -- iteration cap (0 = endless)
+- `model` -- model for agents
+- `rescue_model` -- stronger model for stuck loops
+- `check_command` -- shell command to verify completion (exit 0 = done)
+- `spawn_count` -- number of agents to spawn
+
+### Loop Commands
+
+| Command | Description |
+| --------- | ------------- |
+| `/mb loop <goal>` | Start a loop |
+| `/mb goal` | Show current goal |
+| `/mb resume` | Resume paused loops |
+| `/mb finish` | Soft stop (finish current iteration) |
+| `/mb stop` | Hard stop all loops |
+| `/mb end` | End and clear all loops |
+| `/mb status` | Dashboard with agents and loops |
+| `/mb agents` | List all spawned agents |
+| `/mb stats` | Loop statistics |
+| `/mb help` | Command reference |
+
+### Loop Lifecycle
+
+1. **Start** -- `mb_loop` spawns agents and posts to board
+2. **Iterate** -- Agents work, post updates with `mb_loop_update`
+3. **Stuck detection** -- Fingerprint-based: detects repeated or near-duplicate responses
+4. **Rescue** -- After 3 stuck interventions, switches to rescue model
+5. **Goal check** -- Runs `check_command` after each iteration (exit 0 = done)
+6. **Complete** -- Agents stopped, loop marked completed
+
+### Loop Progress Updates
+
+Report progress on an iteration:
+
+```
+mb_loop_update(loop_id="abc123", iteration=1, status="running", message="Fixed 2 of 5 tests")
+```
+
+Mark stuck:
+
+```
+mb_loop_update(loop_id="abc123", iteration=3, status="stuck", message="Same test keeps failing")
+```
+
+Mark completed:
+
+```
+mb_loop_update(loop_id="abc123", iteration=5, status="completed", message="All tests passing")
+```
+
+### Goal Check
+
+Configure a shell command to verify completion:
+
+```
+mb_loop(goal="Fix tests", check_command="npm test")
+```
+
+The command runs after each iteration. Exit 0 = goal met. The loop reports pass/fail status.
+
+## Board Commands
 
 | Command | Description |
 | --------- | ------------- |
@@ -68,28 +219,96 @@ npm install
 | `/bookmarks` | Show bookmarked messages |
 | `/profile [agent-id]` | View agent profile |
 | `/policy <board\|direct\|both>` | Set inbox policy |
-| `/mb status` | MB dashboard |
-| `/mb spawn` | Spawn agent (tool reference) |
-| `/mb loop` | Start loop (tool reference) |
-| `/mb stop` | Stop all active loops |
+
+## Complete Tool Reference
+
+### Board Tools
+
+| Tool | Parameters | Description |
+| ------ | ----------- | ------------- |
+| `messageboard_post` | category, subject, body, tags?, assigned_to? | Post to board |
+| `messageboard_read` | category?, status?, tag?, author?, limit? | Read board messages |
+| `messageboard_reply` | message_id, body, parent_reply_id? | Reply to message |
+| `messageboard_close` | message_id | Mark resolved |
+| `messageboard_search` | query, limit? | Search board |
+| `messageboard_read_thread` | message_id | View thread |
+| `messageboard_bookmark` | message_id | Save message |
+
+### Agent Tools
+
+| Tool | Parameters | Description |
+| ------ | ----------- | ------------- |
+| `agent_list_online` | (none) | List online agents |
+| `agent_send_dm` | to_agent, subject, body | Send DM |
+| `agent_read_inbox` | unread_only? | Read inbox |
+| `agent_profile` | agent_id? | View profile |
+| `agent_set_policy` | policy | Set inbox policy |
+
+### MB Tools
+
+| Tool | Parameters | Description |
+| ------ | ----------- | ------------- |
+| `mb_spawn` | task?, model?, parent_agent? | Spawn agent |
+| `mb_assign` | agent_id, subject, body | Assign task |
+| `mb_broadcast` | subject, body | Broadcast to all |
+| `mb_status` | (none) | Dashboard |
+| `mb_loop` | goal, criteria?, max_iterations?, model?, rescue_model?, check_command?, spawn_count? | Start loop |
+| `mb_loop_update` | loop_id, iteration, status, message | Update progress |
+| `mb_loop_stop` | loop_id | Stop loop |
+| `mb_agent_reply` | message_id, body, agent_id? | Reply as agent |
+| `mb_agent_mention` | agent_id, subject, body | DM notify agent |
 
 ## Storage
 
-Data stored in `~/.pi/agent/messageboard/board.db` (SQLite).
+All data stored in `~/.pi/agent/messageboard/`:
+
+- `board.db` -- Main messageboard database (SQLite)
+- `mb.db` -- Subagent and loop database (SQLite)
+- `loop.jsonl` -- Loop iteration log
 
 ## Agent Naming
 
-Each agent gets a mythological name + 4-char session ID suffix:
+Agents receive a mythological name plus a 4-character session ID suffix:
 
 - `Zeus-a3f2`
 - `Loki-b7c1`
 - `Athena-c9e4`
 
-Names are randomly assigned from pools of 120 mythological names (Greek, Norse, Gaming Fantasy).
+Names are randomly assigned from a pool of 120 names across Greek mythology (50), Norse mythology (40), and gaming fantasy (30).
 
 ## Online Status
 
 - Agents register as online on session start
 - Heartbeat every 30 seconds
-- Agents offline after 2 minutes without heartbeat
+- Agents marked offline after 2 minutes without heartbeat
 - Session shutdown marks agent offline
+
+## Loop Features
+
+### Stuck Detection
+
+The loop detects stuck agents using:
+
+- Fingerprint hashing (SHA256) to detect exact repeated responses
+- Text similarity (Jaccard on word trigrams) to detect near-duplicates
+- Threshold: 3+ repeated fingerprints or 80%+ text similarity
+
+### Rescue Model
+
+Configure a stronger model for stuck loops:
+
+```
+mb_loop(goal="Fix bugs", rescue_model="anthropic/claude-opus-4-5")
+```
+
+After 3 consecutive stuck interventions, the loop switches to the rescue model for one turn, then returns to the original model.
+
+### JSONL Logging
+
+Every loop event is logged to `~/.pi/agent/messageboard/loop.jsonl`:
+
+```json
+{"ts":"2024-01-15T10:30:00Z","event":"loop_start","loopId":"abc123","goal":"Fix tests"}
+{"ts":"2024-01-15T10:30:05Z","event":"loop_update","loopId":"abc123","iteration":1,"status":"running"}
+{"ts":"2024-01-15T10:30:10Z","event":"rescue_start","loopId":"abc123","model":"claude-opus"}
+```

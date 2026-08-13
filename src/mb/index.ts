@@ -96,24 +96,38 @@ export default function (pi: ExtensionAPI) {
 					if (!remainder.trim()) {
 						const loops = mbDb.getActiveMbLoops();
 						if (loops.length === 0) {
-							ctx.ui.notify("No active loops. Use /mb loop <goal> to start one.", "info");
+							ctx.ui.notify(
+								"No active loops. Use /mb loop <goal> to start one.",
+								"info",
+							);
 						} else {
 							const l = loops[0];
-							ctx.ui.notify(`Goal: ${l.goal}\nCriteria: ${l.criteria || "-"}\nMode: ${l.max_iterations > 0 ? `${l.max_iterations} max` : "endless"}\nModel: ${l.model || "-"}\nRescue: ${l.rescue_model || "-"}`, "info");
+							ctx.ui.notify(
+								`Goal: ${l.goal}\nCriteria: ${l.criteria || "-"}\nMode: ${l.max_iterations > 0 ? `${l.max_iterations} max` : "endless"}\nModel: ${l.model || "-"}\nRescue: ${l.rescue_model || "-"}`,
+								"info",
+							);
 						}
 					} else {
-						ctx.ui.notify(`Goal set: ${remainder}. Use /mb loop ${remainder} to start.`, "info");
+						ctx.ui.notify(
+							`Goal set: ${remainder}. Use /mb loop ${remainder} to start.`,
+							"info",
+						);
 					}
 					break;
 				}
 				case "resume": {
 					const loops = mbDb.getActiveMbLoops();
-					const paused = mbDb.getActiveMbLoops().filter((l: any) => l.status === "paused");
+					const paused = mbDb
+						.getActiveMbLoops()
+						.filter((l: any) => l.status === "paused");
 					if (paused.length === 0) {
 						ctx.ui.notify("No paused loops to resume.", "info");
 					} else {
 						for (const loop of paused) {
-							mbDb.updateMbLoop(loop.id, { status: "running", last_notice: "Resumed by operator" });
+							mbDb.updateMbLoop(loop.id, {
+								status: "running",
+								last_notice: "Resumed by operator",
+							});
 						}
 						ctx.ui.notify(`Resumed ${paused.length} loop(s).`, "info");
 					}
@@ -125,52 +139,74 @@ export default function (pi: ExtensionAPI) {
 						ctx.ui.notify("No active loops to finish.", "info");
 					} else {
 						for (const loop of active) {
-							mbDb.updateMbLoop(loop.id, { status: "paused", last_notice: "Soft stop: finish current iteration" });
+							mbDb.updateMbLoop(loop.id, {
+								status: "paused",
+								last_notice: "Soft stop: finish current iteration",
+							});
 						}
-						ctx.ui.notify(`Soft stop: ${active.length} loop(s) will finish current iteration.`, "info");
+						ctx.ui.notify(
+							`Soft stop: ${active.length} loop(s) will finish current iteration.`,
+							"info",
+						);
 					}
 					break;
 				}
 				case "end": {
 					const all = mbDb.getActiveMbLoops();
 					for (const loop of all as any[]) {
-						mbDb.updateMbLoop(loop.id, { status: "completed", last_notice: "Ended by operator" });
+						mbDb.updateMbLoop(loop.id, {
+							status: "completed",
+							last_notice: "Ended by operator",
+						});
 						for (const agentId of loop.agent_ids) {
 							mbDb.setMbAgentOffline(agentId);
 						}
 					}
-					ctx.ui.notify(`Ended ${all.length} loop(s). State preserved.`, "info");
+					ctx.ui.notify(
+						`Ended ${all.length} loop(s). State preserved.`,
+						"info",
+					);
 					break;
 				}
 				case "stats": {
 					const all = mbDb.getAllMbAgents();
 					const loops = mbDb.getActiveMbLoops();
-					const running = loops.filter((l: any) => l.status === "running").length;
-					const completed = loops.filter((l: any) => l.status === "completed").length;
+					const running = loops.filter(
+						(l: any) => l.status === "running",
+					).length;
+					const completed = loops.filter(
+						(l: any) => l.status === "completed",
+					).length;
 					const stuck = loops.filter((l: any) => l.status === "stuck").length;
 					const totalIter = all.reduce((s, l) => s + l.iteration, 0);
-					ctx.ui.notify(`Loop Stats:\nTotal: ${all.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`, "info");
+					ctx.ui.notify(
+						`Loop Stats:\nTotal: ${all.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`,
+						"info",
+					);
 					break;
 				}
 				case "help": {
 					ctx.ui.notify(
 						`MB Loop Commands:\n` +
-						`/mb loop <goal> — Start a loop\n` +
-						`/mb goal — Show current goal\n` +
-						`/mb resume — Resume paused loops\n` +
-						`/mb finish — Soft stop (finish iteration)\n` +
-						`/mb stop — Hard stop all loops\n` +
-						`/mb end — End and clear all loops\n` +
-						`/mb status — Dashboard\n` +
-						`/mb agents — List agents\n` +
-						`/mb stats — Loop statistics\n` +
-						`/mb help — This help`,
+							`/mb loop <goal> — Start a loop\n` +
+							`/mb goal — Show current goal\n` +
+							`/mb resume — Resume paused loops\n` +
+							`/mb finish — Soft stop (finish iteration)\n` +
+							`/mb stop — Hard stop all loops\n` +
+							`/mb end — End and clear all loops\n` +
+							`/mb status — Dashboard\n` +
+							`/mb agents — List agents\n` +
+							`/mb stats — Loop statistics\n` +
+							`/mb help — This help`,
 						"info",
 					);
 					break;
 				}
 				default:
-					ctx.ui.notify("Usage: /mb <status|spawn|loop|stop|agents|goal|resume|finish|end|stats|help>", "info");
+					ctx.ui.notify(
+						"Usage: /mb <status|spawn|loop|stop|agents|goal|resume|finish|end|stats|help>",
+						"info",
+					);
 			}
 		},
 	});
