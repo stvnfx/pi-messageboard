@@ -186,17 +186,12 @@ export default function (pi: ExtensionAPI) {
 				}
 				case "stats": {
 					const loops = mbDb.getActiveMbLoops();
-					const running = loops.filter(
-						(l) => l.status === "running",
-					).length;
+					const running = loops.filter((l) => l.status === "running").length;
 					const completed = loops.filter(
 						(l) => l.status === "completed",
 					).length;
 					const stuck = loops.filter((l) => l.status === "stuck").length;
-					const totalIter = loops.reduce(
-						(s, l) => s + l.iteration,
-						0,
-					);
+					const totalIter = loops.reduce((s, l) => s + l.iteration, 0);
 					ctx.ui.notify(
 						`Loop Stats:\nTotal: ${loops.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`,
 						"info",

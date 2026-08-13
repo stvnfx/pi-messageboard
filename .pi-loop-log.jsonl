@@ -21,3 +21,4 @@
 {"ts":"2026-08-13T21:22:41.947Z","iteration":2,"event":"done","stuckStreak":0,"notice":"Done signal #2; continuing with improvements."}
 {"ts":"2026-08-13T21:23:15.191Z","iteration":3,"event":"done","stuckStreak":0,"notice":"Done signal #3; continuing with improvements."}
 {"ts":"2026-08-13T21:26:51.315Z","iteration":4,"event":"done","stuckStreak":0,"notice":"Done signal #4; continuing with improvements."}
+{"ts":"2026-08-13T21:38:26.843Z","iteration":5,"event":"soft_stop","stuckStreak":0,"notice":"Soft stop: iteration finished, loop stopped by operator."}
