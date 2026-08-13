@@ -39,7 +39,11 @@ describe("integration: spawn → post → reply → DM", () => {
 		// 4. Another agent replies
 		const replierId = "Zeus-int2";
 		boardDb.registerAgent("s-int2", "Zeus", "int2");
-		const reply = boardDb.createReply(msg.id, replierId, "Check auth.ts line 42");
+		const reply = boardDb.createReply(
+			msg.id,
+			replierId,
+			"Check auth.ts line 42",
+		);
 		assert.equal(reply.body, "Check auth.ts line 42");
 
 		// 5. Thread has reply
