@@ -7,6 +7,7 @@ import {
 	fingerprint,
 	textSimilarity,
 	detectStuck,
+	runGoalCheck,
 } from "../../mb/loop.js";
 
 mbDb.resetMbAll();
@@ -132,13 +133,33 @@ describe("fingerprint and stuck detection", () => {
 	});
 });
 
-describe("rescue model switching", () => {
-  it("triggers rescue after 3 stuck interventions", () => {
-    const loop = mbDb.createMbLoop("Zeus-r1", "Rescue me", "", 0, undefined, "claude-opus");
-    assert.equal(loop.rescue_model, "claude-opus");
-    assert.equal(loop.consecutive_stuck, 0);
-    assert.equal(loop.rescue_active, false);
+describe("runGoalCheck", () => {
+  it("passes on exit 0", async () => {
+    const result = await runGoalCheck("echo ok");
+    assert.equal(result.passed, true);
+    assert.equal(result.output, "ok");
   });
+
+  it("fails on non-zero exit", async () => {
+    const result = await runGoalCheck("exit 1");
+    assert.equal(result.passed, false);
+  });
+});
+
+describe("rescue model switching", () => {
+	it("triggers rescue after 3 stuck interventions", () => {
+		const loop = mbDb.createMbLoop(
+			"Zeus-r1",
+			"Rescue me",
+			"",
+			0,
+			undefined,
+			"claude-opus",
+		);
+		assert.equal(loop.rescue_model, "claude-opus");
+		assert.equal(loop.consecutive_stuck, 0);
+		assert.equal(loop.rescue_active, false);
+	});
 });
 
 describe("getLoopDirective", () => {

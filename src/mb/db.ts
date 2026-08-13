@@ -196,7 +196,12 @@ export function getMbLoop(id: string): MbLoop | null {
 	const d = getDb();
 	const row = d.prepare("SELECT * FROM mb_loops WHERE id = ?").get(id) as any;
 	if (!row) return null;
-	return { ...row, agent_ids: parseJsonArray(row.agent_ids), consecutive_stuck: row.consecutive_stuck ?? 0, rescue_active: Boolean(row.rescue_active) };
+	return {
+		...row,
+		agent_ids: parseJsonArray(row.agent_ids),
+		consecutive_stuck: row.consecutive_stuck ?? 0,
+		rescue_active: Boolean(row.rescue_active),
+	};
 }
 
 export function getActiveMbLoops(): MbLoop[] {

@@ -26,6 +26,23 @@ function logLoopEvent(event: string, data: Record<string, unknown> = {}): void {
 	}
 }
 
+export interface GoalCheckResult {
+	passed: boolean;
+	output: string;
+}
+
+export async function runGoalCheck(command: string, timeoutMs = 30000): Promise<GoalCheckResult> {
+	const { execSync } = await import("node:child_process");
+	try {
+		const output = execSync(command, { timeout: timeoutMs, encoding: "utf-8", stdio: ["pipe", "pipe", "pipe"] });
+		return { passed: true, output: output.trim().slice(0, 500) };
+	} catch (err) {
+		const e = err as { stdout?: string; stderr?: string; message: string };
+		const output = [e.stdout, e.stderr].filter(Boolean).join("\n").trim().slice(0, 500);
+		return { passed: false, output: output || e.message };
+	}
+}
+
 const CONTINUE_DIRECTIVES = [
 	"Continue the loop. Execute the next concrete progress batch.",
 	"Keep going — pick the next step and do it now.",
@@ -140,6 +157,9 @@ export function registerLoopTools(pi: ExtensionAPI) {
 			rescue_model: Type.Optional(
 				Type.String({ description: "Stronger model for stuck loops" }),
 			),
+			check_command: Type.Optional(
+				Type.String({ description: "Shell command to verify goal completion (exit 0 = done)" }),
+			),
 			spawn_count: Type.Optional(
 				Type.Number({ description: "Number of agents to spawn (default 1)" }),
 			),
@@ -175,6 +195,9 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				model: params.model,
 				rescueModel: params.rescue_model,
 			});
+			if (params.check_command) {
+				mbDb.updateMbLoop(loop.id, { check_command: params.check_command });
+			}
 
 			// Spawn agents
 			const agentIds: string[] = [];
@@ -283,13 +306,23 @@ export function registerLoopTools(pi: ExtensionAPI) {
 
 			// Rescue model switching for stuck loops
 			let rescueDirective = "";
-			if (params.status === "stuck" && loop.rescue_model && !loop.rescue_active) {
+			if (
+				params.status === "stuck" &&
+				loop.rescue_model &&
+				!loop.rescue_active
+			) {
 				const newStuck = (loop.consecutive_stuck || 0) + 1;
 				mbDb.updateMbLoop(params.loop_id, { consecutive_stuck: newStuck });
 				if (newStuck >= 3) {
-					mbDb.updateMbLoop(params.loop_id, { rescue_active: true, consecutive_stuck: 0 });
+					mbDb.updateMbLoop(params.loop_id, {
+						rescue_active: true,
+						consecutive_stuck: 0,
+					});
 					rescueDirective = `\n\nRESCUE TURN: Switch to model ${loop.rescue_model}. Inspect the project state, fix or finish ONE concrete thing, then report with mb_loop_update.`;
-					logLoopEvent("rescue_start", { loopId: params.loop_id, model: loop.rescue_model });
+					logLoopEvent("rescue_start", {
+						loopId: params.loop_id,
+						model: loop.rescue_model,
+					});
 				}
 			} else if (params.status === "running" && loop.rescue_active) {
 				mbDb.updateMbLoop(params.loop_id, { rescue_active: false });
@@ -313,7 +346,11 @@ export function registerLoopTools(pi: ExtensionAPI) {
 						text: responseText,
 					},
 				],
-				details: { loopId: params.loop_id, status: params.status, rescueDirective: rescueDirective || undefined },
+				details: {
+					loopId: params.loop_id,
+					status: params.status,
+					rescueDirective: rescueDirective || undefined,
+				},
 			};
 		},
 	});
