@@ -349,21 +349,40 @@ export default function (pi: ExtensionAPI) {
 		},
 	});
 
-	const alias = (name: string, description: string, handler: (args: string, ctx: any) => Promise<void>) => {
+	const alias = (
+		name: string,
+		description: string,
+		handler: (args: string, ctx: any) => Promise<void>,
+	) => {
 		pi.registerCommand(name, { description, handler });
 	};
 	alias("mb-agents", "List registered subagents", async (_args, ctx) => {
 		const agents = mbDb.getAllMbAgents();
-		ctx.ui.notify(agents.length ? agents.map((a) => `${a.id} ${a.status}${a.task ? ` — ${a.task}` : ""}`).join("\\n") : "No agents spawned yet.", "info");
+		ctx.ui.notify(
+			agents.length
+				? agents
+						.map((a) => `${a.id} ${a.status}${a.task ? ` — ${a.task}` : ""}`)
+						.join("\\n")
+				: "No agents spawned yet.",
+			"info",
+		);
 	});
 	alias("mb-list", "List registered subagents", async (_args, ctx) => {
 		const agents = mbDb.getAllMbAgents();
-		ctx.ui.notify(agents.length ? agents.map((a) => `${a.id} ${a.status}${a.task ? ` — ${a.task}` : ""}`).join("\\n") : "No agents spawned yet.", "info");
+		ctx.ui.notify(
+			agents.length
+				? agents
+						.map((a) => `${a.id} ${a.status}${a.task ? ` — ${a.task}` : ""}`)
+						.join("\\n")
+				: "No agents spawned yet.",
+			"info",
+		);
 	});
 	alias("mb-kill", "Stop one registered subagent", async (args, ctx) => {
 		const id = args.trim();
 		if (!id) return ctx.ui.notify("Usage: /mb-kill <agent-id>", "error");
-		if (!mbDb.getMbAgent(id)) return ctx.ui.notify(`Agent "${id}" not found.`, "error");
+		if (!mbDb.getMbAgent(id))
+			return ctx.ui.notify(`Agent "${id}" not found.`, "error");
 		stopAgent(id);
 		ctx.ui.notify(`Stopped subagent ${id}.`, "info");
 	});

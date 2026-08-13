@@ -7,7 +7,9 @@ describe("top-level subagent commands", () => {
 		const names: string[] = [];
 		mbExtension({
 			registerTool() {},
-			registerCommand(name: string) { names.push(name); },
+			registerCommand(name: string) {
+				names.push(name);
+			},
 			on() {},
 		} as never);
 		assert.ok(names.includes("mb-agents"));
