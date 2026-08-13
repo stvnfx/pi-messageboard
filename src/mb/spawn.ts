@@ -347,7 +347,9 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 			const loop = mbDb.getMbLoop(params.loop_id);
 			if (!loop) {
 				return {
-					content: [{ type: "text", text: `Loop "${params.loop_id}" not found.` }],
+					content: [
+						{ type: "text", text: `Loop "${params.loop_id}" not found.` },
+					],
 					details: {},
 					isError: true,
 				};
@@ -364,7 +366,11 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 			];
 			return {
 				content: [{ type: "text", text: lines.join("\n") }],
-				details: { loopId: loop.id, status: loop.status, iteration: loop.iteration },
+				details: {
+					loopId: loop.id,
+					status: loop.status,
+					iteration: loop.iteration,
+				},
 			};
 		},
 	});
@@ -380,7 +386,9 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 		],
 		parameters: Type.Object({
 			count: Type.Optional(
-				Type.Number({ description: "Number of recent entries to read (default 10)" }),
+				Type.Number({
+					description: "Number of recent entries to read (default 10)",
+				}),
 			),
 		}),
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
@@ -388,20 +396,32 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 				const { readFileSync } = await import("node:fs");
 				const { join } = await import("node:path");
 				const { homedir } = await import("node:os");
-				const logFile = join(homedir(), ".pi", "agent", "messageboard", "loop.jsonl");
+				const logFile = join(
+					homedir(),
+					".pi",
+					"agent",
+					"messageboard",
+					"loop.jsonl",
+				);
 				const content = readFileSync(logFile, "utf-8");
 				const entries = content.trim().split("\n").filter(Boolean);
 				const count = params.count ?? 10;
 				const recent = entries.slice(-count);
 				if (recent.length === 0) {
-					return { content: [{ type: "text", text: "No loop log entries found." }], details: {} };
+					return {
+						content: [{ type: "text", text: "No loop log entries found." }],
+						details: {},
+					};
 				}
 				return {
 					content: [{ type: "text", text: recent.join("\n") }],
 					details: { entryCount: recent.length },
 				};
 			} catch {
-				return { content: [{ type: "text", text: "No loop log found." }], details: {} };
+				return {
+					content: [{ type: "text", text: "No loop log found." }],
+					details: {},
+				};
 			}
 		},
 	});

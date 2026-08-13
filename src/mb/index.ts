@@ -176,7 +176,10 @@ export default function (pi: ExtensionAPI) {
 						(l: any) => l.status === "completed",
 					).length;
 					const stuck = loops.filter((l: any) => l.status === "stuck").length;
-					const totalIter = loops.reduce((s: number, l: any) => s + l.iteration, 0);
+					const totalIter = loops.reduce(
+						(s: number, l: any) => s + l.iteration,
+						0,
+					);
 					ctx.ui.notify(
 						`Loop Stats:\nTotal: ${loops.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`,
 						"info",
