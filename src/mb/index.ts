@@ -22,8 +22,7 @@ export default function (pi: ExtensionAPI) {
 		description:
 			"Messageboard agent management: /mb spawn, /mb status, /mb loop, /mb stop",
 		handler: async (args, ctx) => {
-			const [subcommand = "status", ...rest] = args.trim().split(/\s+/);
-			const remainder = rest.join(" ").trim();
+			const [subcommand = "status"] = args.trim().split(/\s+/);
 
 			switch (subcommand) {
 				case "status": {
@@ -75,8 +74,21 @@ export default function (pi: ExtensionAPI) {
 					ctx.ui.notify(`Stopped ${loops.length} active loop(s).`, "info");
 					break;
 				}
+				case "agents": {
+					const agents = mbDb.getAllMbAgents();
+					if (agents.length === 0) {
+						ctx.ui.notify("No agents spawned yet.", "info");
+						break;
+					}
+					const lines = agents.map(
+						(a) =>
+							`${a.id} ${a.status === "online" ? "🟢" : a.status === "busy" ? "🔄" : "⚫"}${a.task ? ` — ${a.task.slice(0, 50)}` : ""}${a.loop_id ? ` [loop ${a.loop_id.slice(0, 8)}]` : ""}`,
+					);
+					ctx.ui.notify(`Agents (${agents.length}):\n${lines.join("\n")}`, "info");
+					break;
+				}
 				default:
-					ctx.ui.notify("Usage: /mb <status|spawn|loop|stop>", "info");
+					ctx.ui.notify("Usage: /mb <status|spawn|loop|stop|agents>", "info");
 			}
 		},
 	});

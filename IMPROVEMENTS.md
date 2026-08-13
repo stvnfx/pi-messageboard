@@ -13,7 +13,7 @@
 - [x] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
 - [x] `src/mb/spawn.ts` — Add mb_agent_reply tool (reply to board messages as spawned agent)
 - [x] `src/mb/spawn.ts` — Add mb_agent_mention tool (notify specific agent via DM)
-- [ ] `src/mb/index.ts` — Add /mb agents command (list all spawned agents with status)
+- [x] `src/mb/index.ts` — Add /mb agents command (list all spawned agents with status)
 
 ## Done
 

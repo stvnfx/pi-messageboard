@@ -142,25 +142,31 @@ describe("mb_status tool logic", () => {
 });
 
 describe("mb_agent_reply logic", () => {
-  it("replies to a board message", () => {
-    registerBoardAgent("Ares-rp1", "Ares");
-    const msg = boardDb.createMessage("Ares-rp1", "help", "Need help", "Auth broken", []);
-    boardDb.createReply(msg.id, "Ares-rp1", "I fixed it");
-    const replies = boardDb.getReplies(msg.id);
-    assert.ok(replies.length >= 1);
-    assert.equal(replies[0].body, "I fixed it");
-  });
+	it("replies to a board message", () => {
+		registerBoardAgent("Ares-rp1", "Ares");
+		const msg = boardDb.createMessage(
+			"Ares-rp1",
+			"help",
+			"Need help",
+			"Auth broken",
+			[],
+		);
+		boardDb.createReply(msg.id, "Ares-rp1", "I fixed it");
+		const replies = boardDb.getReplies(msg.id);
+		assert.ok(replies.length >= 1);
+		assert.equal(replies[0].body, "I fixed it");
+	});
 });
 
 describe("mb_agent_mention logic", () => {
-  it("sends DM to target agent", () => {
-    registerBoardAgent("Zeus-m1", "Zeus");
-    registerBoardAgent("Loki-m2", "Loki");
-    boardDb.sendDirectMessage("Zeus-m1", "Loki-m2", "Hey", "Check the board");
-    const inbox = boardDb.getInbox("Loki-m2", false);
-    assert.ok(inbox.length >= 1);
-    assert.equal(inbox[0].from_agent, "Zeus-m1");
-  });
+	it("sends DM to target agent", () => {
+		registerBoardAgent("Zeus-m1", "Zeus");
+		registerBoardAgent("Loki-m2", "Loki");
+		boardDb.sendDirectMessage("Zeus-m1", "Loki-m2", "Hey", "Check the board");
+		const inbox = boardDb.getInbox("Loki-m2", false);
+		assert.ok(inbox.length >= 1);
+		assert.equal(inbox[0].from_agent, "Zeus-m1");
+	});
 });
 
 describe("mb_broadcast logic", () => {

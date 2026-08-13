@@ -313,7 +313,12 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 					isError: true,
 				};
 			}
-			boardDb.sendDirectMessage(myId, params.agent_id, params.subject, params.body);
+			boardDb.sendDirectMessage(
+				myId,
+				params.agent_id,
+				params.subject,
+				params.body,
+			);
 			return {
 				content: [
 					{
