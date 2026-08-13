@@ -1,6 +1,7 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as db from "./db.js";
 import { getMyAgentId } from "./tools.js";
+import { getBoardStats, formatStats } from "./stats.js";
 
 export function registerCommands(pi: ExtensionAPI) {
 	pi.registerCommand("board", {
@@ -131,6 +132,14 @@ export function registerCommands(pi: ExtensionAPI) {
 			}
 			db.updateAgentInboxPolicy(agentId, policy as any);
 			ctx.ui.notify(`Inbox policy set to: ${policy}`, "info");
+		},
+	});
+
+	pi.registerCommand("stats", {
+		description: "Show messageboard statistics",
+		handler: async (_args, ctx) => {
+			const stats = getBoardStats();
+			ctx.ui.notify(formatStats(stats), "info");
 		},
 	});
 }
