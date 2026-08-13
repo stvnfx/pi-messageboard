@@ -3,6 +3,7 @@ import type {
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { createHash } from "node:crypto";
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { homedir } from "node:os";
@@ -40,6 +41,69 @@ const STUCK_STRATEGIES = [
 	"Review recent changes and verify correctness.",
 ];
 
+// ─── Fingerprint-based stuck detection ──────────────────────────────
+
+const REPEAT_WINDOW = 3;
+const SIMILARITY_THRESHOLD = 0.8;
+
+export function fingerprint(text: string): string {
+	const normalized = text.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 2000);
+	return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
+}
+
+function wordShingles(text: string, n = 3): Set<string> {
+	const words = text.replace(/\s+/g, " ").trim().toLowerCase().split(" ");
+	const set = new Set<string>();
+	if (words.length < n) {
+		if (words.length > 0) set.add(words.join(" "));
+		return set;
+	}
+	for (let i = 0; i <= words.length - n; i++) set.add(words.slice(i, i + n).join(" "));
+	return set;
+}
+
+export function textSimilarity(a: string, b: string): number {
+	const setA = wordShingles(a);
+	const setB = wordShingles(b);
+	if (setA.size === 0 || setB.size === 0) return 0;
+	let intersection = 0;
+	for (const shingle of setA) if (setB.has(shingle)) intersection++;
+	return intersection / (setA.size + setB.size - intersection);
+}
+
+export interface StuckDetection {
+	stuck: boolean;
+	reason?: string;
+}
+
+export function detectStuck(
+	recentFingerprints: string[],
+	recentTexts: string[],
+	currentText: string,
+): StuckDetection {
+	if (!currentText.trim()) return { stuck: false };
+	const currentFp = fingerprint(currentText);
+
+	// Check exact fingerprint repeats
+	const recentCount = recentFingerprints.filter(fp => fp === currentFp).length;
+	if (recentCount >= REPEAT_WINDOW) {
+		return { stuck: true, reason: `same response repeated ${recentCount + 1}x (fingerprint ${currentFp})` };
+	}
+
+	// Check near-duplicate via text similarity
+	if (recentTexts.length >= 1) {
+		const prev = recentTexts[recentTexts.length - 1];
+		if (prev && currentText.length > 60) {
+			const sim = textSimilarity(currentText, prev);
+			if (sim >= SIMILARITY_THRESHOLD) {
+				return { stuck: true, reason: `response ~${Math.round(sim * 100)}% similar to previous` };
+			}
+		}
+	}
+
+	return { stuck: false };
+}
+
 export function registerLoopTools(pi: ExtensionAPI) {
 	// ─── mb_loop: Start a loop with agents ─────────────────────────────
 	pi.registerTool({
@@ -70,7 +134,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				myId,
 				params.goal,
 				params.criteria ?? "",
-				(params.max_iterations as number) ?? 0,
+				params.max_iterations ?? 0,
 				params.model,
 			);
 
@@ -87,8 +151,13 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				["mb-loop"],
 			);
 
-mbDb.updateMbLoop(loop.id, { post_id: msg.id });
-			logLoopEvent("loop_start", { loopId: loop.id, goal: params.goal, agentCount: params.spawn_count ?? 1, model: params.model });
+			mbDb.updateMbLoop(loop.id, { post_id: msg.id });
+			logLoopEvent("loop_start", {
+				loopId: loop.id,
+				goal: params.goal,
+				agentCount: params.spawn_count ?? 1,
+				model: params.model,
+			});
 
 			// Spawn agents
 			const agentIds: string[] = [];
@@ -187,7 +256,12 @@ mbDb.updateMbLoop(loop.id, { post_id: msg.id });
 				["mb-loop", `loop-${params.loop_id.slice(0, 8)}`],
 			);
 
-logLoopEvent("loop_update", { loopId: params.loop_id, iteration: params.iteration, status: params.status, message: params.message.slice(0, 200) });
+			logLoopEvent("loop_update", {
+				loopId: params.loop_id,
+				iteration: params.iteration,
+				status: params.status,
+				message: params.message.slice(0, 200),
+			});
 
 			if (params.status === "completed") {
 				// Stop all agents in this loop
@@ -195,7 +269,7 @@ logLoopEvent("loop_update", { loopId: params.loop_id, iteration: params.iteratio
 					stopHeartbeat(agentId);
 					mbDb.setMbAgentOffline(agentId);
 				}
-		}
+			}
 
 			return {
 				content: [
@@ -231,10 +305,10 @@ logLoopEvent("loop_update", { loopId: params.loop_id, iteration: params.iteratio
 				};
 			}
 
-mbDb.updateMbLoop(params.loop_id, {
+			mbDb.updateMbLoop(params.loop_id, {
 				status: "paused",
 				last_notice: "Stopped by operator",
-		});
+			});
 			logLoopEvent("loop_stop", { loopId: params.loop_id });
 
 			for (const agentId of loop.agent_ids) {
