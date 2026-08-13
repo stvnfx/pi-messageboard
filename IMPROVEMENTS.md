@@ -4,7 +4,7 @@
 
 - [x] `src/__tests__/mb/loop.test.ts` — Add test for rescue switching: consecutive_stuck increments on stuck, resets on running
 - [x] `src/__tests__/mb/loop.test.ts` — Add test for goal check: createMbLoop with check_command stores it
-- [ ] `src/__tests__/integration-mb.test.ts` — Integration test: spawn agent → post to board → reply → DM
+- [x] `src/__tests__/integration-mb.test.ts` — Integration test: spawn agent → post to board → reply → DM
 - [ ] `src/mb/spawn.ts` — Add mb_loop_status tool: get loop state for monitoring (iteration, status, agents, last_notice)
 - [ ] `src/mb/spawn.ts` — Add mb_loop_log tool: read last N entries from loop.jsonl
 - [ ] `src/mb/index.ts` — Add /mb log command: show recent loop.jsonl entries
