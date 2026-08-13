@@ -86,7 +86,74 @@ function initSchema(db: Database.Database) {
       FOREIGN KEY (agent_id) REFERENCES agents(id),
       FOREIGN KEY (message_id) REFERENCES messages(id)
     );
+
+    -- Indexes for hot query paths (M1)
+    CREATE INDEX IF NOT EXISTS idx_messages_category_status ON messages(category, status);
+    CREATE INDEX IF NOT EXISTS idx_messages_author ON messages(author);
+    CREATE INDEX IF NOT EXISTS idx_messages_assigned ON messages(assigned_to);
+    CREATE INDEX IF NOT EXISTS idx_replies_message ON replies(message_id);
+    CREATE INDEX IF NOT EXISTS idx_inbox_to ON inbox(to_agent, read);
+    CREATE INDEX IF NOT EXISTS idx_bookmarks_agent ON bookmarks(agent_id);
+    );
+
+    -- M4: mentions tracking
+    CREATE TABLE IF NOT EXISTS mentions (
+      agent_id TEXT NOT NULL,
+      message_id TEXT NOT NULL,
+      reply_id TEXT,
+      timestamp INTEGER NOT NULL,
+      read INTEGER DEFAULT 0,
+      PRIMARY KEY (agent_id, message_id, reply_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_mentions_agent ON mentions(agent_id, read);
   `);
+
+	// M3: FTS5 full-text search virtual table (synced with messages)
+	db.exec(
+		`CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(subject, body, content='messages', content_rowid='id', tokenize='porter unicode61');`,
+	);
+	db.exec(
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN INSERT INTO messages_fts(rowid, subject, body) VALUES (new.id, new.subject, new.body); END;`,
+	);
+	db.exec(
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN INSERT INTO messages_fts(messages_fts, rowid, subject, body) VALUES ('delete', old.id, old.subject, old.body); END;`,
+	);
+	db.exec(
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF subject, body ON messages BEGIN INSERT INTO messages_fts(messages_fts, rowid, subject, body) VALUES ('delete', old.id, old.subject, old.body); INSERT INTO messages_fts(rowid, subject, body) VALUES (new.id, new.subject, new.body); END;`,
+	);
+
+	// M2: apply versioned migrations
+	db.exec(
+		`CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at INTEGER DEFAULT (unixepoch()));`,
+	);
+	const current =
+		(
+			db
+				.prepare(
+					"SELECT version FROM schema_version ORDER BY version DESC LIMIT 1",
+				)
+				.get() as any
+		)?.version ?? 0;
+	// Apply 001_indexes.sql if version < 1
+	if (current < 1) {
+		const fs = require("fs");
+		const path = require("path");
+		const migrationPath = path.join(
+			process.cwd(),
+			"src",
+			"migrations",
+			"001_indexes.sql",
+		);
+		if (fs.existsSync(migrationPath)) {
+			const sql = fs.readFileSync(migrationPath, "utf8");
+			// Only run up-section (before -- Down)
+			const upSql = sql.split("-- Down")[0];
+			db.exec(upSql);
+			db.prepare(
+				"INSERT OR IGNORE INTO schema_version (version) VALUES (1)",
+			).run();
+		}
+	}
 }
 
 // ─── Agent Operations ──────────────────────────────────────────────
@@ -188,6 +255,10 @@ export function createMessage(
 		"open",
 		assignedTo ?? null,
 	);
+	// M4: store mentions
+	for (const mentioned of extractMentions(body)) {
+		createMention(mentioned, id);
+	}
 	return getMessage(id)!;
 }
 
@@ -252,13 +323,16 @@ export function getMessages(
 
 export function searchMessages(query: string, limit = 20): Message[] {
 	const d = getDb();
+	// FTS5 MATCH requires non-empty query; fallback for empty
+	const q = query.trim() || "*";
 	const rows = d
 		.prepare(`
-    SELECT * FROM messages
-    WHERE subject LIKE ? OR body LIKE ?
-    ORDER BY timestamp DESC LIMIT ?
+    SELECT m.* FROM messages m JOIN messages_fts f ON m.id = f.rowid
+    WHERE messages_fts MATCH ?
+    ORDER BY rank
+    LIMIT ?
   `)
-		.all(`%${query}%`, `%${query}%`, limit) as any[];
+		.all(q, limit) as any[];
 	return rows.map((r) => ({ ...r, tags: parseTags(r.tags) }));
 }
 
@@ -290,6 +364,10 @@ export function createReply(
 	d.prepare(
 		"INSERT INTO replies (id, message_id, author, timestamp, body, parent_reply_id) VALUES (?, ?, ?, ?, ?, ?)",
 	).run(id, messageId, author, now, body, parentReplyId ?? null);
+	// M4: store mentions in replies
+	for (const mentioned of extractMentions(body)) {
+		createMention(mentioned, messageId, id);
+	}
 	return getReply(id)!;
 }
 
@@ -409,6 +487,27 @@ export function closeDb(): void {
 		db.close();
 		db = null;
 	}
+}
+
+export function createMention(
+	agentId: string,
+	messageId: string,
+	replyId?: string,
+): void {
+	const d = getDb();
+	d.prepare(
+		"INSERT OR IGNORE INTO mentions (agent_id, message_id, reply_id, timestamp, read) VALUES (?, ?, ?, ?, 0)",
+	).run(agentId, messageId, replyId ?? null, Date.now());
+}
+
+export function getMentions(agentId: string, unreadOnly = false): any[] {
+	const d = getDb();
+	const where = unreadOnly
+		? "WHERE agent_id = ? AND read = 0"
+		: "WHERE agent_id = ?";
+	return d
+		.prepare(`SELECT * FROM mentions ${where} ORDER BY timestamp DESC`)
+		.all(agentId) as any[];
 }
 
 export function extractMentions(text: string): string[] {

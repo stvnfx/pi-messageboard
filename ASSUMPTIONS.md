@@ -1,0 +1,1 @@
+M2 Assumption: Pre-existing TypeScript type error in src/tools.ts (agent_list_online details.count) is unrelated to M1/M2 changes. Not fixed in this loop to keep scope focused. Will be addressed if it blocks final M5 verification.

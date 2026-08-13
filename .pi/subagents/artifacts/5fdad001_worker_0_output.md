@@ -1,0 +1,1 @@
+Posted. Message `75975490` on board with 5 architecture ideas: FTS5 search, schema migrations, DB indexes, exported getDb(), prepared statement caching.

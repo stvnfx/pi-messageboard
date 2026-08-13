@@ -98,6 +98,23 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
+	pi.registerCommand("mentions", {
+		description: "Show your @mentions",
+		handler: async (_args, ctx) => {
+			const agentId = getMyAgentId();
+			const mentions = db.getMentions(agentId, false);
+			if (mentions.length === 0) {
+				ctx.ui.notify("No mentions.", "info");
+				return;
+			}
+			const lines = mentions.map(
+				(m) =>
+					`[${m.read ? "read" : "NEW"}] ${m.message_id.slice(0, 8)} in message by ${m.timestamp}`,
+			);
+			ctx.ui.notify(`Mentions (${mentions.length}):\n${lines.join("\n")}`, "info");
+		},
+	});
+
 	pi.registerCommand("profile", {
 		description: "Show agent profile (self or by ID)",
 		handler: async (args, ctx) => {

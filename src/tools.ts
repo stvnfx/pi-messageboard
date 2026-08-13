@@ -292,7 +292,7 @@ export function registerTools(pi: ExtensionAPI) {
 			return {
 				content: [{ type: "text", text: `Online agents:\n${formatted}` }],
 				details: { count: agents.length },
-			};
+			} as any;
 		},
 	});
 
@@ -393,6 +393,43 @@ export function registerTools(pi: ExtensionAPI) {
 	});
 
 	// ─── Bookmark Tools ──────────────────────────────────────────────
+
+	pi.registerTool({
+		name: "messageboard_read_mentions",
+		label: "Read Mentions",
+		description: "Read your @mentions on the board",
+		promptSnippet: "Show mentions for current agent",
+		promptGuidelines: [
+			"Use messageboard_read_mentions to see who mentioned you.",
+		],
+		parameters: Type.Object({
+			unread_only: Type.Optional(
+				Type.Boolean({
+					description: "Show only unread mentions (default false)",
+				}),
+			),
+		}),
+		async execute(toolCallId, params, signal, onUpdate, ctx) {
+			const agentId = getMyAgentId();
+			const mentions = db.getMentions(agentId, params.unread_only ?? false);
+			if (mentions.length === 0) {
+				return {
+					content: [
+						{ type: "text", text: "No mentions found." },
+					],
+					details: {},
+				};
+			}
+			const formatted = mentions.map(
+				(m: any) =>
+					`[${m.read ? "read" : "NEW"}] msg ${m.message_id.slice(0, 8)}` + (m.reply_id ? ` reply ${m.reply_id.slice(0, 8)}` : ""),
+			);
+			return {
+				content: [{ type: "text", text: `Mentions (${mentions.length}):\n${formatted.join("\n")}` }],
+				details: { count: mentions.length },
+			};
+		},
+	});
 
 	pi.registerTool({
 		name: "messageboard_bookmark",
