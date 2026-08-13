@@ -2,6 +2,7 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as db from "./db.js";
 import { registerTools, setMyAgentId, getMyAgentId } from "./tools.js";
 import { registerCommands } from "./commands.js";
+import mbExtension from "./mb/index.js";
 import { getRandomName, generateSuffix, generateAgentId } from "./names.js";
 
 const HEARTBEAT_INTERVAL = 30_000;
@@ -50,12 +51,13 @@ export default function (pi: ExtensionAPI) {
 
 	registerTools(pi);
 	registerCommands(pi);
+	mbExtension(pi);
 
 	// Markdown transformer for code blocks in messageboard content
-	pi.registerMarkdownTransformer((markdown, { messageType }) => {
-		// Only transform assistant messages that look like board output
-		if (messageType !== "assistant") return markdown;
-		// Highlight agent IDs in messages
-		return markdown.replace(/@([A-Z][a-z]+-[a-f0-9]{4})/g, "**@$1**");
-	});
+	if (typeof pi.registerMarkdownTransformer === "function") {
+		pi.registerMarkdownTransformer((markdown, { messageType }) => {
+			if (messageType !== "assistant") return markdown;
+			return markdown.replace(/@([A-Z][a-z]+-[a-f0-9]{4})/g, "**@$1**");
+		});
+	}
 }
