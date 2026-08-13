@@ -135,7 +135,7 @@ export default function (pi: ExtensionAPI) {
 				case "resume": {
 					const paused = mbDb
 						.getActiveMbLoops()
-						.filter((l: any) => l.status === "paused");
+						.filter((l) => l.status === "paused");
 					if (paused.length === 0) {
 						ctx.ui.notify("No paused loops to resume.", "info");
 					} else {
@@ -169,7 +169,7 @@ export default function (pi: ExtensionAPI) {
 				}
 				case "end": {
 					const all = mbDb.getActiveMbLoops();
-					for (const loop of all as any[]) {
+					for (const loop of all) {
 						mbDb.updateMbLoop(loop.id, {
 							status: "completed",
 							last_notice: "Ended by operator",
@@ -187,14 +187,14 @@ export default function (pi: ExtensionAPI) {
 				case "stats": {
 					const loops = mbDb.getActiveMbLoops();
 					const running = loops.filter(
-						(l: any) => l.status === "running",
+						(l) => l.status === "running",
 					).length;
 					const completed = loops.filter(
-						(l: any) => l.status === "completed",
+						(l) => l.status === "completed",
 					).length;
-					const stuck = loops.filter((l: any) => l.status === "stuck").length;
+					const stuck = loops.filter((l) => l.status === "stuck").length;
 					const totalIter = loops.reduce(
-						(s: number, l: any) => s + l.iteration,
+						(s, l) => s + l.iteration,
 						0,
 					);
 					ctx.ui.notify(
