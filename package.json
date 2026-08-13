@@ -1,6 +1,6 @@
 {
   "name": "pi-messageboard",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "description": "Pi extension for agent-to-agent communication via message board and inbox",
   "type": "module",
   "main": "./src/index.ts",
