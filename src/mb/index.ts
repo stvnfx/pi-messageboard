@@ -116,7 +116,6 @@ export default function (pi: ExtensionAPI) {
 					break;
 				}
 				case "resume": {
-					const loops = mbDb.getActiveMbLoops();
 					const paused = mbDb
 						.getActiveMbLoops()
 						.filter((l: any) => l.status === "paused");
@@ -169,7 +168,6 @@ export default function (pi: ExtensionAPI) {
 					break;
 				}
 				case "stats": {
-					const all = mbDb.getAllMbAgents();
 					const loops = mbDb.getActiveMbLoops();
 					const running = loops.filter(
 						(l: any) => l.status === "running",
@@ -178,9 +176,9 @@ export default function (pi: ExtensionAPI) {
 						(l: any) => l.status === "completed",
 					).length;
 					const stuck = loops.filter((l: any) => l.status === "stuck").length;
-					const totalIter = all.reduce((s, l) => s + l.iteration, 0);
+					const totalIter = loops.reduce((s: number, l: any) => s + l.iteration, 0);
 					ctx.ui.notify(
-						`Loop Stats:\nTotal: ${all.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`,
+						`Loop Stats:\nTotal: ${loops.length} | Running: ${running} | Completed: ${completed} | Stuck: ${stuck}\nTotal iterations: ${totalIter}`,
 						"info",
 					);
 					break;

@@ -330,6 +330,81 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 			};
 		},
 	});
+
+	// ─── mb_loop_status: Get loop state for monitoring ──────────────────
+	pi.registerTool({
+		name: "mb_loop_status",
+		label: "MB Loop Status",
+		description: "Get the current state of a loop",
+		promptSnippet: "Get loop status",
+		promptGuidelines: [
+			"Use mb_loop_status to check on a loop's progress, iteration, and last notice.",
+		],
+		parameters: Type.Object({
+			loop_id: Type.String({ description: "Loop ID" }),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+			const loop = mbDb.getMbLoop(params.loop_id);
+			if (!loop) {
+				return {
+					content: [{ type: "text", text: `Loop "${params.loop_id}" not found.` }],
+					details: {},
+					isError: true,
+				};
+			}
+			const lines = [
+				`Loop: ${loop.id.slice(0, 8)}`,
+				`Goal: ${loop.goal}`,
+				`Status: ${loop.status}`,
+				`Iteration: ${loop.iteration}${loop.max_iterations > 0 ? `/${loop.max_iterations}` : "/infinite"}`,
+				`Agents: ${loop.agent_ids.join(", ") || "none"}`,
+				`Stuck count: ${loop.consecutive_stuck}`,
+				`Rescue active: ${loop.rescue_active}`,
+				`Last: ${loop.last_notice || "-"}`,
+			];
+			return {
+				content: [{ type: "text", text: lines.join("\n") }],
+				details: { loopId: loop.id, status: loop.status, iteration: loop.iteration },
+			};
+		},
+	});
+
+	// ─── mb_loop_log: Read recent loop.jsonl entries ────────────────────
+	pi.registerTool({
+		name: "mb_loop_log",
+		label: "MB Loop Log",
+		description: "Read recent entries from the loop log",
+		promptSnippet: "Read loop log",
+		promptGuidelines: [
+			"Use mb_loop_log to see recent loop events from the JSONL log.",
+		],
+		parameters: Type.Object({
+			count: Type.Optional(
+				Type.Number({ description: "Number of recent entries to read (default 10)" }),
+			),
+		}),
+		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
+			try {
+				const { readFileSync } = await import("node:fs");
+				const { join } = await import("node:path");
+				const { homedir } = await import("node:os");
+				const logFile = join(homedir(), ".pi", "agent", "messageboard", "loop.jsonl");
+				const content = readFileSync(logFile, "utf-8");
+				const entries = content.trim().split("\n").filter(Boolean);
+				const count = params.count ?? 10;
+				const recent = entries.slice(-count);
+				if (recent.length === 0) {
+					return { content: [{ type: "text", text: "No loop log entries found." }], details: {} };
+				}
+				return {
+					content: [{ type: "text", text: recent.join("\n") }],
+					details: { entryCount: recent.length },
+				};
+			} catch {
+				return { content: [{ type: "text", text: "No loop log found." }], details: {} };
+			}
+		},
+	});
 }
 
 // ─── Heartbeat Management ───────────────────────────────────────────

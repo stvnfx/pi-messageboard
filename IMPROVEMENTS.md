@@ -5,11 +5,11 @@
 - [x] `src/__tests__/mb/loop.test.ts` — Add test for rescue switching: consecutive_stuck increments on stuck, resets on running
 - [x] `src/__tests__/mb/loop.test.ts` — Add test for goal check: createMbLoop with check_command stores it
 - [x] `src/__tests__/integration-mb.test.ts` — Integration test: spawn agent → post to board → reply → DM
-- [ ] `src/mb/spawn.ts` — Add mb_loop_status tool: get loop state for monitoring (iteration, status, agents, last_notice)
-- [ ] `src/mb/spawn.ts` — Add mb_loop_log tool: read last N entries from loop.jsonl
-- [ ] `src/mb/index.ts` — Add /mb log command: show recent loop.jsonl entries
-- [ ] `README.md` — Add /mb agents and /mb log to commands table
-- [ ] `README.md` — Add mb_agent_reply, mb_agent_mention, mb_loop_status to tools table
+- [x] `src/mb/spawn.ts` — Add mb_loop_status tool: get loop state for monitoring (iteration, status, agents, last_notice)
+- [x] `src/mb/spawn.ts` — Add mb_loop_log tool: read last N entries from loop.jsonl
+- [x] `src/mb/index.ts` — Add /mb log command: show recent loop.jsonl entries
+- [x] `README.md` — Add /mb agents and /mb log to commands table
+- [x] `README.md` — Add mb_agent_reply, mb_agent_mention, mb_loop_status to tools table
 - [ ] `src/mb/loop.ts` — Add anti-repetition sampling penalty hint: include "Do not repeat previous response" in stuck directive
 - [ ] `src/mb/loop.ts` — Add context pressure handling: detect long responses and suggest compact
 - [ ] `src/mb/loop.ts` — Add iteration delay param: wait N seconds between loop iterations
