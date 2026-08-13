@@ -25,7 +25,8 @@ describe("/mb command completions", () => {
 		assert.ok(values.includes("loop"));
 		assert.ok(values.includes("prepare"));
 		assert.ok(values.includes("agents"));
-		const spaced = command?.getArgumentCompletions?.(" ")?.map((item) => item.value) ?? [];
+		const spaced =
+			command?.getArgumentCompletions?.(" ")?.map((item) => item.value) ?? [];
 		assert.ok(spaced.includes("kill"));
 		assert.ok(spaced.includes("prepare"));
 	});

@@ -36,8 +36,21 @@ export default function (pi: ExtensionAPI) {
 			const trimmed = prefix.trim();
 			if (!trimmed) {
 				const subcommands = [
-					"status", "spawn", "loop", "stop", "list", "agents", "kill",
-					"kill-all", "goal", "prepare", "resume", "finish", "end", "stats", "help",
+					"status",
+					"spawn",
+					"loop",
+					"stop",
+					"list",
+					"agents",
+					"kill",
+					"kill-all",
+					"goal",
+					"prepare",
+					"resume",
+					"finish",
+					"end",
+					"stats",
+					"help",
 				];
 				return subcommands.map((value) => ({ value, label: value }));
 			}
