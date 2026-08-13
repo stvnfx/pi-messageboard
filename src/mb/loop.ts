@@ -3,11 +3,27 @@ import type {
 	ExtensionContext,
 } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { homedir } from "node:os";
 import * as mbDb from "./db.js";
 import type { MbLoop } from "./types.js";
 import * as boardDb from "../db.js";
 import { getRandomName, generateSuffix, generateAgentId } from "../names.js";
 import { startHeartbeat, stopHeartbeat } from "./spawn.js";
+
+const LOG_DIR = join(homedir(), ".pi", "agent", "messageboard");
+const LOG_FILE = join(LOG_DIR, "loop.jsonl");
+
+function logLoopEvent(event: string, data: Record<string, unknown> = {}): void {
+	try {
+		mkdirSync(LOG_DIR, { recursive: true });
+		const entry = { ts: new Date().toISOString(), event, ...data };
+		appendFileSync(LOG_FILE, JSON.stringify(entry) + "\n");
+	} catch {
+		// Best effort logging
+	}
+}
 
 const CONTINUE_DIRECTIVES = [
 	"Continue the loop. Execute the next concrete progress batch.",
@@ -71,7 +87,8 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				["mb-loop"],
 			);
 
-			mbDb.updateMbLoop(loop.id, { post_id: msg.id });
+mbDb.updateMbLoop(loop.id, { post_id: msg.id });
+			logLoopEvent("loop_start", { loopId: loop.id, goal: params.goal, agentCount: params.spawn_count ?? 1, model: params.model });
 
 			// Spawn agents
 			const agentIds: string[] = [];
@@ -170,13 +187,15 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				["mb-loop", `loop-${params.loop_id.slice(0, 8)}`],
 			);
 
+logLoopEvent("loop_update", { loopId: params.loop_id, iteration: params.iteration, status: params.status, message: params.message.slice(0, 200) });
+
 			if (params.status === "completed") {
 				// Stop all agents in this loop
 				for (const agentId of loop.agent_ids) {
 					stopHeartbeat(agentId);
 					mbDb.setMbAgentOffline(agentId);
 				}
-			}
+		}
 
 			return {
 				content: [
@@ -212,10 +231,11 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				};
 			}
 
-			mbDb.updateMbLoop(params.loop_id, {
+mbDb.updateMbLoop(params.loop_id, {
 				status: "paused",
 				last_notice: "Stopped by operator",
-			});
+		});
+			logLoopEvent("loop_stop", { loopId: params.loop_id });
 
 			for (const agentId of loop.agent_ids) {
 				stopHeartbeat(agentId);

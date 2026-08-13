@@ -7,7 +7,7 @@
 - [x] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
 - [x] `README.md` — Add mb/ tools table (mb_spawn, mb_assign, mb_broadcast, mb_status, mb_loop, mb_loop_update, mb_loop_stop)
 - [x] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
-- [ ] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
+- [x] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
 - [ ] `src/mb/loop.ts` — Add fingerprint-based stuck detection (SHA256 of response text, detect repeats)
 - [ ] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
 - [ ] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
