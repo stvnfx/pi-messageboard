@@ -4,7 +4,10 @@ import { registerTools, setMyAgentId, getMyAgentId } from "./tools.js";
 import { registerCommands } from "./commands.js";
 import mbExtension from "./mb/index.js";
 import { getRandomName, generateSuffix, generateAgentId } from "./names.js";
-import { startMessageboardWebServer, type MessageboardWebHandle } from "./web.js";
+import {
+	startMessageboardWebServer,
+	type MessageboardWebHandle,
+} from "./web.js";
 
 const HEARTBEAT_INTERVAL = 30_000;
 const NOTIFICATION_INTERVAL = 2_000;
@@ -110,7 +113,12 @@ export default function (pi: ExtensionAPI) {
 		handler: async (_args, ctx) => {
 			if (!webHandle) webHandle = await startMessageboardWebServer();
 			ctx.ui.notify(`Messageboard dashboard: ${webHandle.url}`, "info");
-			const command = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+			const command =
+				process.platform === "darwin"
+					? "open"
+					: process.platform === "win32"
+						? "start"
+						: "xdg-open";
 			try {
 				await pi.exec(command, [webHandle.url], { timeout: 5000 });
 			} catch {

@@ -7,12 +7,17 @@ function getLocal(url: string): Promise<{ status: number; body: string }> {
 	const target = new URL(url);
 	assert.equal(target.hostname, "127.0.0.1");
 	return new Promise((resolve, reject) => {
-		const req = request({ hostname: target.hostname, port: target.port, path: target.pathname }, (res) => {
-			let body = "";
-			res.setEncoding("utf8");
-			res.on("data", (chunk) => { body += chunk; });
-			res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
-		});
+		const req = request(
+			{ hostname: target.hostname, port: target.port, path: target.pathname },
+			(res) => {
+				let body = "";
+				res.setEncoding("utf8");
+				res.on("data", (chunk) => {
+					body += chunk;
+				});
+				res.on("end", () => resolve({ status: res.statusCode ?? 0, body }));
+			},
+		);
 		req.on("error", reject);
 		req.end();
 	});
@@ -28,7 +33,11 @@ describe("messageboard web dashboard", () => {
 
 			const state = await getLocal(`${handle.url}api/state`);
 			assert.equal(state.status, 200);
-			const payload = JSON.parse(state.body) as { messages: unknown[]; inbox: unknown[]; loops: unknown[] };
+			const payload = JSON.parse(state.body) as {
+				messages: unknown[];
+				inbox: unknown[];
+				loops: unknown[];
+			};
 			assert.ok(Array.isArray(payload.messages));
 			assert.ok(Array.isArray(payload.inbox));
 			assert.ok(Array.isArray(payload.loops));

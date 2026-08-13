@@ -1,4 +1,8 @@
-import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+	createServer,
+	type IncomingMessage,
+	type ServerResponse,
+} from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
@@ -14,7 +18,10 @@ export interface MessageboardWebHandle {
 }
 
 function json(res: ServerResponse, status: number, value: unknown): void {
-	res.writeHead(status, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+	res.writeHead(status, {
+		"Content-Type": "application/json",
+		"Cache-Control": "no-store",
+	});
 	res.end(JSON.stringify(value));
 }
 
@@ -31,26 +38,53 @@ async function body(req: IncomingMessage): Promise<Record<string, unknown>> {
 	} catch {
 		throw new Error("Invalid JSON");
 	}
-	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("Invalid JSON object");
+	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed))
+		throw new Error("Invalid JSON object");
 	return parsed as Record<string, unknown>;
 }
 
 function data() {
 	const messages = db.getMessages({ limit: 200 });
-	const interactions = messages.flatMap((message) => db.getReplies(message.id).map((reply) => ({ ...reply, subject: message.subject })));
+	const interactions = messages.flatMap((message) =>
+		db
+			.getReplies(message.id)
+			.map((reply) => ({ ...reply, subject: message.subject })),
+	);
 	const agents = db.getAllAgents();
-	const inbox = agents.flatMap((agent) => db.getInbox(agent.id, false).map((message) => ({ ...message, recipient: agent.id })));
+	const inbox = agents.flatMap((agent) =>
+		db
+			.getInbox(agent.id, false)
+			.map((message) => ({ ...message, recipient: agent.id })),
+	);
 	const loops = mbDb.getActiveMbLoops();
 	const mbAgents = mbDb.getAllMbAgents();
 	const log = existsSync(LOG_FILE)
-		? readFileSync(LOG_FILE, "utf8").trim().split("\n").filter(Boolean).slice(-100).map((line) => {
-			try { return JSON.parse(line); } catch { return { raw: line }; }
-		})
+		? readFileSync(LOG_FILE, "utf8")
+				.trim()
+				.split("\n")
+				.filter(Boolean)
+				.slice(-100)
+				.map((line) => {
+					try {
+						return JSON.parse(line);
+					} catch {
+						return { raw: line };
+					}
+				})
 		: [];
 	return {
 		generatedAt: Date.now(),
-		settings: { boardSessionOnly: db.isBoardSessionOnly(), inboxSessionOnly: db.isInboxSessionOnly() },
-		messages, interactions, inbox, agents, loops, mbAgents, log,
+		settings: {
+			boardSessionOnly: db.isBoardSessionOnly(),
+			inboxSessionOnly: db.isInboxSessionOnly(),
+		},
+		messages,
+		interactions,
+		inbox,
+		agents,
+		loops,
+		mbAgents,
+		log,
 	};
 }
 
@@ -71,23 +105,41 @@ export async function startMessageboardWebServer(): Promise<MessageboardWebHandl
 		const path = new URL(req.url ?? "/", "http://127.0.0.1").pathname;
 		try {
 			if (req.method === "GET" && path === "/") {
-				res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" });
+				res.writeHead(200, {
+					"Content-Type": "text/html; charset=utf-8",
+					"Cache-Control": "no-store",
+				});
 				return res.end(PAGE);
 			}
-			if (req.method === "GET" && path === "/api/state") return json(res, 200, data());
+			if (req.method === "GET" && path === "/api/state")
+				return json(res, 200, data());
 			if (req.method === "POST" && path === "/api/action") {
 				const payload = await body(req);
 				if (payload.name === "clear-board") db.clearBoard();
-				if (payload.name === "clear-inbox" && typeof payload.agentId === "string") db.clearInbox(payload.agentId);
+				if (
+					payload.name === "clear-inbox" &&
+					typeof payload.agentId === "string"
+				)
+					db.clearInbox(payload.agentId);
 				if (payload.name === "toggle-board") db.toggleBoardSessionOnly();
 				if (payload.name === "toggle-inbox") db.toggleInboxSessionOnly();
 				return json(res, 200, { ok: true });
 			}
 			return json(res, 404, { error: "Not found" });
-		} catch (error) { return json(res, 400, { error: error instanceof Error ? error.message : String(error) }); }
+		} catch (error) {
+			return json(res, 400, {
+				error: error instanceof Error ? error.message : String(error),
+			});
+		}
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const address = server.address();
 	const port = typeof address === "object" && address ? address.port : 0;
-	return { url: `http://127.0.0.1:${port}/`, close: () => new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve())) };
+	return {
+		url: `http://127.0.0.1:${port}/`,
+		close: () =>
+			new Promise((resolve, reject) =>
+				server.close((error) => (error ? reject(error) : resolve())),
+			),
+	};
 }
