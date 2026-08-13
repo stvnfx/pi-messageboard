@@ -4,6 +4,13 @@
   "description": "Pi extension for agent-to-agent communication via message board and inbox",
   "type": "module",
   "main": "./src/index.ts",
+  "files": ["src", "README.md"],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stvnfx/pi-messageboard.git"
+  },
+  "keywords": ["pi", "pi-extension", "messageboard", "agent-communication"],
+  "license": "MIT",
   "scripts": {
     "typecheck": "tsc --noEmit"
   },
