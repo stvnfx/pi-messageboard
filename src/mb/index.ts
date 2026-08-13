@@ -186,11 +186,28 @@ export default function (pi: ExtensionAPI) {
 					);
 					break;
 				}
+				case "prepare": {
+					const loops = mbDb.getActiveMbLoops();
+					if (loops.length === 0) {
+						ctx.ui.notify(
+							"No active loop. Use /mb loop <goal> first, then /mb prepare.",
+							"info",
+						);
+						break;
+					}
+					const loop = loops[0];
+					ctx.ui.notify(
+						`Preparing goal spec for: ${loop.goal}\nWrite GOAL.md with:\n- Refined objective\n- Scope and non-goals\n- Completion criteria\n- Milestone roadmap\n- Quality standards\n- Check script (check.sh)\n\nThen run /mb loop to start.`,
+						"info",
+					);
+					break;
+				}
 				case "help": {
 					ctx.ui.notify(
 						`MB Loop Commands:\n` +
 							`/mb loop <goal> — Start a loop\n` +
 							`/mb goal — Show current goal\n` +
+							`/mb prepare — Write goal spec (GOAL.md + check.sh)\n` +
 							`/mb resume — Resume paused loops\n` +
 							`/mb finish — Soft stop (finish iteration)\n` +
 							`/mb stop — Hard stop all loops\n` +
