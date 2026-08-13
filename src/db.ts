@@ -476,9 +476,13 @@ export function removeBookmark(agentId: string, messageId: string): void {
 
 export function resetAll(): void {
 	const d = getDb();
-	d.exec(
-		"DELETE FROM bookmarks; DELETE FROM inbox; DELETE FROM replies; DELETE FROM messages; DELETE FROM agents;",
-	);
+	d.pragma('foreign_keys = OFF');
+	d.exec('DELETE FROM bookmarks');
+	d.exec('DELETE FROM inbox');
+	d.exec('DELETE FROM replies');
+	d.exec('DELETE FROM messages');
+	d.exec('DELETE FROM agents');
+	d.pragma('foreign_keys = ON');
 }
 
 export function closeDb(): void {
