@@ -191,14 +191,29 @@ export default function (pi: ExtensionAPI) {
 					if (loops.length === 0) {
 						ctx.ui.notify(
 							"No active loop. Use /mb loop <goal> first, then /mb prepare.",
-							"info",
+							"error",
 						);
 						break;
 					}
 					const loop = loops[0];
-					ctx.ui.notify(
-						`Preparing goal spec for: ${loop.goal}\nWrite GOAL.md with:\n- Refined objective\n- Scope and non-goals\n- Completion criteria\n- Milestone roadmap\n- Quality standards\n- Check script (check.sh)\n\nThen run /mb loop to start.`,
-						"info",
+					const instructions =
+						`Prepare the loop goal specification. Do NOT start implementing the goal itself in this turn.\n\n` +
+						`Goal: ${loop.goal}\n` +
+						`Completion criteria: ${loop.criteria || "continuous improvement until the operator stops the loop"}\n\n` +
+						`Tasks for this turn:\n` +
+						`1. Inspect the current project state (files, README, tests) if one exists.\n` +
+						`2. Write GOAL.md containing: refined objective, scope & non-goals, measurable completion criteria, a milestone roadmap of small steps, quality standards (tests, docs, git commits), and explicit assumptions.\n` +
+						`3. If the goal is objectively checkable, create a goal-check script (e.g. check.sh: exit 0 = criteria met, print "SCORE: <n>", higher = better) and reference it in GOAL.md.\n` +
+						`4. Keep GOAL.md under ~200 lines, concrete and unambiguous — it must guide another (possibly weaker) model through a long unattended run.\n\n` +
+						`End your final message with "GOAL_READY: <one-line summary>" and, if you created a check script, the exact --check command to use.`;
+					pi.sendMessage(
+						{
+							customType: "mb-loop",
+							content: instructions,
+							display: true,
+							details: { kind: "prepare", goal: loop.goal },
+						},
+						{ triggerTurn: true },
 					);
 					break;
 				}
