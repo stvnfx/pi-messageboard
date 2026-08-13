@@ -43,6 +43,7 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 			const name = getRandomName();
 			const agentId = generateAgentId(name, suffix);
 
+			// Register in mb.db
 			const agent = mbDb.registerMbAgent({
 				id: agentId,
 				session_id: sessionId,
@@ -53,6 +54,9 @@ export function registerSpawnTools(pi: ExtensionAPI) {
 				spawned_by: params.parent_agent,
 				task: params.task,
 			});
+
+			// Also register in board.db to satisfy FK constraints
+			boardDb.registerAgent(sessionId, name, suffix);
 
 			// Start heartbeat
 			startHeartbeat(agentId);

@@ -2,43 +2,18 @@
 
 ## Open
 
-- [x] `src/__tests__/mb/loop.test.ts` — Add test for rescue switching: consecutive_stuck increments on stuck, resets on running
-- [x] `src/__tests__/mb/loop.test.ts` — Add test for goal check: createMbLoop with check_command stores it
-- [x] `src/__tests__/integration-mb.test.ts` — Integration test: spawn agent → post to board → reply → DM
-- [x] `src/mb/spawn.ts` — Add mb_loop_status tool: get loop state for monitoring (iteration, status, agents, last_notice)
-- [x] `src/mb/spawn.ts` — Add mb_loop_log tool: read last N entries from loop.jsonl
-- [x] `src/mb/index.ts` — Add /mb log command: show recent loop.jsonl entries
-- [x] `README.md` — Add /mb agents and /mb log to commands table
-- [x] `README.md` — Add mb_agent_reply, mb_agent_mention, mb_loop_status to tools table
-- [ ] `src/mb/loop.ts` — Add anti-repetition sampling penalty hint: include "Do not repeat previous response" in stuck directive
-- [ ] `src/mb/loop.ts` — Add context pressure handling: detect long responses and suggest compact
-- [ ] `src/mb/loop.ts` — Add iteration delay param: wait N seconds between loop iterations
-- [ ] `src/mb/db.ts` — Add resetMbLoop function: clear single loop's data
-- [ ] `package.json` — Add "test" script: "node --import tsx --test src/__tests__/*.test.ts src/__tests__/mb/*.test.ts"
-- [x] `src/__tests__/mb/spawn.test.ts` — Test mb_spawn creates agent on board, starts heartbeat, returns agentId
-- [x] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
-- [x] `README.md` — Add mb/ tools table (mb_spawn, mb_assign, mb_broadcast, mb_status, mb_loop, mb_loop_update, mb_loop_stop)
-- [x] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
-- [x] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
-- [x] `src/mb/loop.ts` — Add fingerprint-based stuck detection (SHA256 of response text, detect repeats)
-- [x] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
-- [x] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
-- [x] `src/mb/spawn.ts` — Add mb_agent_reply tool (reply to board messages as spawned agent)
-- [x] `src/mb/spawn.ts` — Add mb_agent_mention tool (notify specific agent via DM)
-- [x] `src/mb/index.ts` — Add /mb agents command (list all spawned agents with status)
+- [x] `src/mb/db.ts` — Register agents in board.db when spawning via mb.db (fix FK constraint)
+- [ ] `src/mb/index.ts` — /mb loop command should actually start a loop, not just say "use the tool"
+- [ ] `src/index.ts` — Verify extension loads in Pi (test with /reload)
+- [ ] `src/mb/spawn.ts` — mb_spawn should register agent in both board.db and mb.db
+- [ ] `src/mb/loop.ts` — Fix unused parameter warnings (prefix with _)
+- [ ] `src/__tests__/mb/spawn.test.ts` — Add test for mb_spawn FK constraint fix
+- [ ] `src/__tests__/mb/loop.test.ts` — Add test for /mb loop command starting a loop
+- [ ] `package.json` — Add "test" script to run all tests
+- [ ] `README.md` — Update installation section with npm install command
 
 ## Done
 
-- [x] `src/db.ts` — Fix resetAll() foreign key ordering, stale DB cleanup
-- [x] `src/__tests__/mb/db.test.ts` — Test registerMbAgent, createMbLoop, updateMbLoop, getActiveMbLoops, resetMbAll
-- [x] `src/__tests__/mb/spawn.test.ts` — Test mb_spawn creates agent on board, starts heartbeat, returns agentId
-- [x] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
-- [x] `README.md` — Add mb/ tools table (mb_spawn, mb_assign, mb_broadcast, mb_status, mb_loop, mb_loop_update, mb_loop_stop)
-- [x] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
-- [x] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
-- [x] `src/mb/loop.ts` — Add fingerprint-based stuck detection (SHA256 of response text, detect repeats)
-- [x] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
-- [x] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
-- [x] `src/mb/spawn.ts` — Add mb_agent_reply tool (reply to board messages as spawned agent)
-- [x] `src/mb/spawn.ts` — Add mb_agent_mention tool (notify specific agent via DM)
-- [x] `src/mb/index.ts` — Add /mb agents command (list all spawned agents with status)
+- [x] `src/tools.ts` — Fix getMyAgentId to return fallback ID instead of throwing
+- [x] `src/mb/loop.ts` — Fix getMyAgentId to use fallback ID
+- [x] `src/mb/spawn.ts` — Fix getMyAgentId to use fallback ID
