@@ -4,7 +4,7 @@
 
 - [x] `src/__tests__/mb/db.test.ts` — Test registerMbAgent, createMbLoop, updateMbLoop, getActiveMbLoops, resetMbAll
 - [x] `src/__tests__/mb/spawn.test.ts` — Test mb_spawn creates agent on board, starts heartbeat, returns agentId
-- [ ] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
+- [x] `src/__tests__/mb/loop.test.ts` — Test mb_loop creates loop, spawns agents; mb_loop_update posts to board; mb_loop_stop halts
 - [ ] `README.md` — Add mb/ tools table (mb_spawn, mb_assign, mb_broadcast, mb_status, mb_loop, mb_loop_update, mb_loop_stop)
 - [ ] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
 - [ ] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
