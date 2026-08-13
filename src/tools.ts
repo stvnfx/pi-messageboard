@@ -310,4 +310,66 @@ export function registerTools(pi: ExtensionAPI) {
       return { content: [{ type: 'text', text: `${header}\n\nReplies (${replies.length}):\n${replyText}` }], details: { replyCount: replies.length } };
     },
   });
+
+  // ─── Agent Profile Tools ──────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'agent_profile',
+    label: 'Agent Profile',
+    description: 'Show your agent profile or another agent\'s profile',
+    promptSnippet: 'View agent profile',
+    promptGuidelines: [
+      'Use agent_profile to see details about yourself or another agent.',
+    ],
+    parameters: Type.Object({
+      agent_id: Type.Optional(Type.String({ description: 'Agent ID to look up (default: self)' })),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const myId = getMyAgentId();
+      const targetId = params.agent_id ?? myId;
+      const agent = db.getAgent(targetId);
+      if (!agent) {
+        return { content: [{ type: 'text', text: `Agent "${targetId}" not found.` }], details: {}, isError: true };
+      }
+      const myMessages = db.getMessages({ author: targetId, limit: 5 });
+      const myDms = db.getInbox(targetId, false).slice(0, 5);
+      const profile = [
+        `Agent: ${agent.id}`,
+        `Name: ${agent.name}`,
+        `Status: ${agent.status}`,
+        `Inbox policy: ${agent.inbox_policy}`,
+        `Last heartbeat: ${new Date(agent.last_heartbeat).toISOString()}`,
+        `\nRecent posts:`,
+        ...myMessages.map(m => `  [${m.id.slice(0, 8)}] ${m.subject}`),
+        `\nRecent DMs:`,
+        ...myDms.map(dm => `  [${dm.read ? 'read' : 'NEW'}] from ${dm.from_agent}: ${dm.subject}`),
+      ];
+      return { content: [{ type: 'text', text: profile.join('\n') }], details: { agentId: targetId } };
+    },
+  });
+
+  pi.registerTool({
+    name: 'agent_set_policy',
+    label: 'Set Inbox Policy',
+    description: 'Set your inbox policy (board, direct, or both)',
+    promptSnippet: 'Change inbox policy',
+    promptGuidelines: [
+      'Use agent_set_policy to control how you receive messages.',
+    ],
+    parameters: Type.Object({
+      policy: Type.Union([
+        Type.Literal('board'),
+        Type.Literal('direct'),
+        Type.Literal('both'),
+      ], { description: 'Inbox policy: board (public only), direct (DMs only), both (default)' }),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const agentId = getMyAgentId();
+      db.updateAgentInboxPolicy(agentId, params.policy);
+      return {
+        content: [{ type: 'text', text: `Inbox policy set to: ${params.policy}` }],
+        details: { policy: params.policy },
+      };
+    },
+  });
 }

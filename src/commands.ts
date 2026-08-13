@@ -82,4 +82,41 @@ export function registerCommands(pi: ExtensionAPI) {
       ctx.ui.notify(lines.join('\n'), 'info');
     },
   });
+
+  pi.registerCommand('profile', {
+    description: 'Show agent profile (self or by ID)',
+    handler: async (args, ctx) => {
+      const agentId = getMyAgentId();
+      const targetId = args?.trim() || agentId;
+      const agent = db.getAgent(targetId);
+      if (!agent) {
+        ctx.ui.notify(`Agent "${targetId}" not found.`, 'error');
+        return;
+      }
+      const msgs = db.getMessages({ author: targetId, limit: 3 });
+      const lines = [
+        `Agent: ${agent.id}`,
+        `Status: ${agent.status}`,
+        `Policy: ${agent.inbox_policy}`,
+        `Heartbeat: ${new Date(agent.last_heartbeat).toISOString()}`,
+        `\nRecent:`,
+        ...msgs.map(m => `  ${m.subject}`),
+      ];
+      ctx.ui.notify(lines.join('\n'), 'info');
+    },
+  });
+
+  pi.registerCommand('policy', {
+    description: 'Set inbox policy (board/direct/both)',
+    handler: async (args, ctx) => {
+      const agentId = getMyAgentId();
+      const policy = args?.trim();
+      if (!policy || !['board', 'direct', 'both'].includes(policy)) {
+        ctx.ui.notify('Usage: /policy <board|direct|both>', 'error');
+        return;
+      }
+      db.updateAgentInboxPolicy(agentId, policy as any);
+      ctx.ui.notify(`Inbox policy set to: ${policy}`, 'info');
+    },
+  });
 }
