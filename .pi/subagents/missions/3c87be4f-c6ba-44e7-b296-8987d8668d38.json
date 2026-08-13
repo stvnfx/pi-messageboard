@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "3c87be4f-c6ba-44e7-b296-8987d8668d38",
+  "title": "[prompt redacted]",
+  "objective": "[prompt redacted]",
+  "status": "completed",
+  "createdAt": "2026-08-13T19:19:09.011Z",
+  "updatedAt": "2026-08-13T19:21:31.477Z",
+  "runs": [
+    {
+      "runId": "b7794a1b-4f27-44f7-b049-ec0b25d483aa",
+      "mode": "workflow",
+      "asyncDir": "/var/folders/bc/vz0ctqms2v1c6z6ynzn67mn00000gn/T/pi-subagents-uid-501/async-subagent-runs/b7794a1b-4f27-44f7-b049-ec0b25d483aa",
+      "status": "complete",
+      "startedAt": "2026-08-13T19:19:09.016Z",
+      "completedAt": "2026-08-13T19:21:31.477Z"
+    }
+  ],
+  "workflowChildren": [
+    {
+      "workflowRunId": "b7794a1b-4f27-44f7-b049-ec0b25d483aa",
+      "key": "correctness",
+      "status": "completed",
+      "startedAt": "2026-08-13T19:19:09.050Z",
+      "updatedAt": "2026-08-13T19:21:31.423Z",
+      "artifactPaths": [
+        "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/167bb175/run-0/session.jsonl"
+      ],
+      "runId": "167bb175",
+      "agent": "reviewer",
+      "completedAt": "2026-08-13T19:21:31.423Z",
+      "sessionPath": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/167bb175/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-13T19:21:31.423Z",
+        "status": "completed"
+      }
+    },
+    {
+      "workflowRunId": "b7794a1b-4f27-44f7-b049-ec0b25d483aa",
+      "key": "tests",
+      "status": "completed",
+      "startedAt": "2026-08-13T19:19:09.335Z",
+      "updatedAt": "2026-08-13T19:20:05.984Z",
+      "artifactPaths": [
+        "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/6b46cafb/run-0/session.jsonl"
+      ],
+      "runId": "6b46cafb",
+      "agent": "reviewer",
+      "completedAt": "2026-08-13T19:20:05.984Z",
+      "sessionPath": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/6b46cafb/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-13T19:20:05.984Z",
+        "status": "completed"
+      }
+    },
+    {
+      "workflowRunId": "b7794a1b-4f27-44f7-b049-ec0b25d483aa",
+      "key": "complexity",
+      "status": "completed",
+      "startedAt": "2026-08-13T19:19:09.349Z",
+      "updatedAt": "2026-08-13T19:19:58.287Z",
+      "artifactPaths": [
+        "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/17c2a64b/run-0/session.jsonl"
+      ],
+      "runId": "17c2a64b",
+      "agent": "reviewer",
+      "completedAt": "2026-08-13T19:19:58.287Z",
+      "sessionPath": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/17c2a64b/run-0/session.jsonl",
+      "heartbeat": {
+        "updatedAt": "2026-08-13T19:19:58.287Z",
+        "status": "completed"
+      }
+    }
+  ],
+  "decisions": [],
+  "artifacts": [
+    {
+      "kind": "status",
+      "path": "/var/folders/bc/vz0ctqms2v1c6z6ynzn67mn00000gn/T/pi-subagents-uid-501/async-subagent-runs/b7794a1b-4f27-44f7-b049-ec0b25d483aa/status.json"
+    },
+    {
+      "kind": "other",
+      "path": "/var/folders/bc/vz0ctqms2v1c6z6ynzn67mn00000gn/T/pi-subagents-uid-501/async-subagent-runs/b7794a1b-4f27-44f7-b049-ec0b25d483aa/events.jsonl",
+      "description": "Lifecycle events"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/167bb175/run-0/session.jsonl"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/6b46cafb/run-0/session.jsonl"
+    },
+    {
+      "kind": "output",
+      "path": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7/17c2a64b/run-0/session.jsonl"
+    }
+  ],
+  "receipts": [],
+  "cwd": "/Users/steven/git/pi-messageboard",
+  "ownerSessionId": "/Users/steven/.pi/agent/sessions/--Users-steven-git-pi-messageboard--/2026-08-13T18-48-04-663Z_019ffc73-f137-7375-897b-3191727657f7.jsonl",
+  "summary": "Workflow completed with 3 child run(s). Return: [\n  {\n    \"key\": \"correctness\",\n    \"output\": \"All files read. Here's the full review.\\n\\n## Review\\n\\n### Correct (what is already good)\\n- **No SQL injection anywhere.** All queries use parameterized `?` placeholders — every function in `db.ts` passes values as bind parameters, never string-interpolated into SQL.\\n- **Schema uses `IF NOT EXISTS` and `ON CONFLICT` UPSERT.** `registerAgent` correctly handles re-registration without duplicates.\\n- **WAL mode + foreign keys enabled.** Good SQLite hygiene at `db.ts:27-28`.\\n- **Heartbeat staleness is computed correctly.** `getOnlineAgents` marks stale agents offline atomically within a single `better-sqlite3` call chain.\\n- **Mention deduplication works.** `extractMentions` uses `new Set()` at `db.ts:421`.\\n- **Tool error handling for missing entities.** `messageboard_reply`, `messageboard_close`, `messageboard_bookmark`, `messageboard_read_thread` all return `isError: true` when the target message doesn't exist.\\n- **Thread display inden Trace: 6 event(s)."
+}
