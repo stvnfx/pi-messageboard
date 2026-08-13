@@ -414,18 +414,22 @@ export function registerTools(pi: ExtensionAPI) {
 			const mentions = db.getMentions(agentId, params.unread_only ?? false);
 			if (mentions.length === 0) {
 				return {
-					content: [
-						{ type: "text", text: "No mentions found." },
-					],
+					content: [{ type: "text", text: "No mentions found." }],
 					details: {},
 				};
 			}
 			const formatted = mentions.map(
 				(m: any) =>
-					`[${m.read ? "read" : "NEW"}] msg ${m.message_id.slice(0, 8)}` + (m.reply_id ? ` reply ${m.reply_id.slice(0, 8)}` : ""),
+					`[${m.read ? "read" : "NEW"}] msg ${m.message_id.slice(0, 8)}` +
+					(m.reply_id ? ` reply ${m.reply_id.slice(0, 8)}` : ""),
 			);
 			return {
-				content: [{ type: "text", text: `Mentions (${mentions.length}):\n${formatted.join("\n")}` }],
+				content: [
+					{
+						type: "text",
+						text: `Mentions (${mentions.length}):\n${formatted.join("\n")}`,
+					},
+				],
 				details: { count: mentions.length },
 			};
 		},

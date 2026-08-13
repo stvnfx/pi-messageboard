@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 import { join } from "node:path";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { randomUUID } from "node:crypto";
 import type {
@@ -94,7 +94,6 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_replies_message ON replies(message_id);
     CREATE INDEX IF NOT EXISTS idx_inbox_to ON inbox(to_agent, read);
     CREATE INDEX IF NOT EXISTS idx_bookmarks_agent ON bookmarks(agent_id);
-    );
 
     -- M4: mentions tracking
     CREATE TABLE IF NOT EXISTS mentions (
@@ -108,18 +107,20 @@ function initSchema(db: Database.Database) {
     CREATE INDEX IF NOT EXISTS idx_mentions_agent ON mentions(agent_id, read);
   `);
 
-	// M3: FTS5 full-text search virtual table (synced with messages)
+	// M3: FTS5 full-text search (standalone table with message_id column)
 	db.exec(
-		`CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(subject, body, content='messages', content_rowid='id', tokenize='porter unicode61');`,
+		`CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(message_id, subject, body, tokenize='porter unicode61');`,
+	);
+
+	// M3: FTS5 triggers (standalone table)
+	db.exec(
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN INSERT INTO messages_fts(message_id, subject, body) VALUES (new.id, new.subject, new.body); END;`,
 	);
 	db.exec(
-		`CREATE TRIGGER IF NOT EXISTS messages_fts_insert AFTER INSERT ON messages BEGIN INSERT INTO messages_fts(rowid, subject, body) VALUES (new.id, new.subject, new.body); END;`,
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN DELETE FROM messages_fts WHERE message_id = old.id; END;`,
 	);
 	db.exec(
-		`CREATE TRIGGER IF NOT EXISTS messages_fts_delete AFTER DELETE ON messages BEGIN INSERT INTO messages_fts(messages_fts, rowid, subject, body) VALUES ('delete', old.id, old.subject, old.body); END;`,
-	);
-	db.exec(
-		`CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF subject, body ON messages BEGIN INSERT INTO messages_fts(messages_fts, rowid, subject, body) VALUES ('delete', old.id, old.subject, old.body); INSERT INTO messages_fts(rowid, subject, body) VALUES (new.id, new.subject, new.body); END;`,
+		`CREATE TRIGGER IF NOT EXISTS messages_fts_update AFTER UPDATE OF subject, body ON messages BEGIN DELETE FROM messages_fts WHERE message_id = old.id; INSERT INTO messages_fts(message_id, subject, body) VALUES (new.id, new.subject, new.body); END;`,
 	);
 
 	// M2: apply versioned migrations
@@ -136,16 +137,14 @@ function initSchema(db: Database.Database) {
 		)?.version ?? 0;
 	// Apply 001_indexes.sql if version < 1
 	if (current < 1) {
-		const fs = require("fs");
-		const path = require("path");
-		const migrationPath = path.join(
+		const migrationPath = join(
 			process.cwd(),
 			"src",
 			"migrations",
 			"001_indexes.sql",
 		);
-		if (fs.existsSync(migrationPath)) {
-			const sql = fs.readFileSync(migrationPath, "utf8");
+		if (existsSync(migrationPath)) {
+			const sql = readFileSync(migrationPath, "utf8");
 			// Only run up-section (before -- Down)
 			const upSql = sql.split("-- Down")[0];
 			db.exec(upSql);
@@ -327,7 +326,7 @@ export function searchMessages(query: string, limit = 20): Message[] {
 	const q = query.trim() || "*";
 	const rows = d
 		.prepare(`
-    SELECT m.* FROM messages m JOIN messages_fts f ON m.id = f.rowid
+    SELECT m.* FROM messages m JOIN messages_fts f ON m.id = f.message_id
     WHERE messages_fts MATCH ?
     ORDER BY rank
     LIMIT ?

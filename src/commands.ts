@@ -4,7 +4,7 @@ import { getMyAgentId } from "./tools.js";
 import { getBoardStats, formatStats } from "./stats.js";
 
 export function registerCommands(pi: ExtensionAPI) {
-	pi.registerCommand("board", {
+	pi.registerCommand("mb-board", {
 		description: "Show recent public board messages",
 		handler: async (_args, ctx) => {
 			const messages = db.getMessages({ limit: 10 });
@@ -20,7 +20,7 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("inbox", {
+	pi.registerCommand("mb-inbox", {
 		description: "Show your inbox",
 		handler: async (_args, ctx) => {
 			const agentId = getMyAgentId();
@@ -37,7 +37,7 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("who", {
+	pi.registerCommand("mb-who", {
 		description: "List online agents",
 		handler: async (_args, ctx) => {
 			const agents = db.getOnlineAgents();
@@ -53,7 +53,7 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("tasks", {
+	pi.registerCommand("mb-tasks", {
 		description: "Show open tasks on the board",
 		handler: async (_args, ctx) => {
 			const agentId = getMyAgentId();
@@ -81,7 +81,7 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("bookmarks", {
+	pi.registerCommand("mb-bookmarks", {
 		description: "Show your bookmarked messages",
 		handler: async (_args, ctx) => {
 			const agentId = getMyAgentId();
@@ -98,7 +98,7 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("mentions", {
+	pi.registerCommand("mb-mentions", {
 		description: "Show your @mentions",
 		handler: async (_args, ctx) => {
 			const agentId = getMyAgentId();
@@ -111,11 +111,14 @@ export function registerCommands(pi: ExtensionAPI) {
 				(m) =>
 					`[${m.read ? "read" : "NEW"}] ${m.message_id.slice(0, 8)} in message by ${m.timestamp}`,
 			);
-			ctx.ui.notify(`Mentions (${mentions.length}):\n${lines.join("\n")}`, "info");
+			ctx.ui.notify(
+				`Mentions (${mentions.length}):\n${lines.join("\n")}`,
+				"info",
+			);
 		},
 	});
 
-	pi.registerCommand("profile", {
+	pi.registerCommand("mb-profile", {
 		description: "Show agent profile (self or by ID)",
 		handler: async (args, ctx) => {
 			const agentId = getMyAgentId();
@@ -138,13 +141,13 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("policy", {
+	pi.registerCommand("mb-policy", {
 		description: "Set inbox policy (board/direct/both)",
 		handler: async (args, ctx) => {
 			const agentId = getMyAgentId();
 			const policy = args?.trim();
 			if (!policy || !["board", "direct", "both"].includes(policy)) {
-				ctx.ui.notify("Usage: /policy <board|direct|both>", "error");
+				ctx.ui.notify("Usage: /mb-policy <board|direct|both>", "error");
 				return;
 			}
 			db.updateAgentInboxPolicy(agentId, policy as any);
@@ -152,11 +155,18 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("stats", {
+	pi.registerCommand("mb-stats", {
 		description: "Show messageboard statistics",
 		handler: async (_args, ctx) => {
 			const stats = getBoardStats();
 			ctx.ui.notify(formatStats(stats), "info");
+		},
+	});
+
+	pi.registerCommand("mb-test-command", {
+		description: "Test command for messageboard package",
+		handler: async (_args, ctx) => {
+			ctx.ui.notify("mb-test-command: messageboard extension active.", "info");
 		},
 	});
 }
