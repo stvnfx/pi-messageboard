@@ -35,19 +35,39 @@ export default function (pi: ExtensionAPI) {
 		getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
 			const parts = prefix.split(/\s+/);
 			const subcommands = [
-				"status", "spawn", "loop", "stop", "list", "agents", "kill",
-				"kill-all", "goal", "prepare", "resume", "finish", "end", "stats", "help",
+				"status",
+				"spawn",
+				"loop",
+				"stop",
+				"list",
+				"agents",
+				"kill",
+				"kill-all",
+				"goal",
+				"prepare",
+				"resume",
+				"finish",
+				"end",
+				"stats",
+				"help",
 			];
 			if (parts.length <= 1) {
-				const matches = subcommands.filter((command) => command.startsWith(parts[0] ?? ""));
-				return matches.length ? matches.map((value) => ({ value, label: value })) : null;
+				const matches = subcommands.filter((command) =>
+					command.startsWith(parts[0] ?? ""),
+				);
+				return matches.length
+					? matches.map((value) => ({ value, label: value }))
+					: null;
 			}
 			if (parts[0] === "kill") {
 				const query = parts.slice(1).join(" ");
-				const matches = mbDb.getOnlineMbAgents()
+				const matches = mbDb
+					.getOnlineMbAgents()
 					.map((agent) => agent.id)
 					.filter((id) => id.startsWith(query));
-				return matches.length ? matches.map((value) => ({ value, label: value })) : null;
+				return matches.length
+					? matches.map((value) => ({ value, label: value }))
+					: null;
 			}
 			return null;
 		},

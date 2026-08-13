@@ -4,7 +4,13 @@ import mbExtension from "../../mb/index.js";
 
 describe("/mb command completions", () => {
 	it("includes loop and subagent controls", () => {
-		let command: { getArgumentCompletions?: (prefix: string) => Array<{ value: string }> | null } | undefined;
+		let command:
+			| {
+					getArgumentCompletions?: (
+						prefix: string,
+					) => Array<{ value: string }> | null;
+			  }
+			| undefined;
 		mbExtension({
 			registerTool() {},
 			registerCommand(name: string, options: unknown) {
@@ -12,7 +18,8 @@ describe("/mb command completions", () => {
 			},
 			on() {},
 		} as never);
-		const values = command?.getArgumentCompletions?.("")?.map((item) => item.value) ?? [];
+		const values =
+			command?.getArgumentCompletions?.("")?.map((item) => item.value) ?? [];
 		assert.ok(values.includes("kill"));
 		assert.ok(values.includes("kill-all"));
 		assert.ok(values.includes("loop"));
