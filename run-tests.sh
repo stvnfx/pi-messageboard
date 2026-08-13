@@ -6,7 +6,7 @@ node --import tsx --test src/__tests__/names.test.ts src/__tests__/db.test.ts sr
 
 echo ""
 echo "=== Integration Tests ==="
-node --import tsx --test src/__tests__/integration.test.ts
+node --import tsx --test src/__tests__/integration.test.ts src/__tests__/web.test.ts
 
 echo ""
 echo "=== All tests passed ==="

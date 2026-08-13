@@ -40,11 +40,9 @@ describe("messageboard web dashboard", () => {
 			const payload = JSON.parse(state.body) as {
 				messages: unknown[];
 				inbox: unknown[];
-				loops: unknown[];
 			};
 			assert.ok(Array.isArray(payload.messages));
 			assert.ok(Array.isArray(payload.inbox));
-			assert.ok(Array.isArray(payload.loops));
 		} finally {
 			await handle.close();
 		}

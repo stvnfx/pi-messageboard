@@ -163,21 +163,6 @@ export function registerCommands(pi: ExtensionAPI) {
 		},
 	});
 
-	pi.registerCommand("mb-spawn-assistant", {
-		description: "Spawn an assistant agent to ask active agents who needs help",
-		handler: async (_args, _ctx) => {
-			pi.sendMessage(
-				{
-					customType: "messageboard-assistant",
-					content:
-						"Use mb_spawn to spawn one assistant agent with task: Inspect active messageboard agents, use agent_list_online, ask each active agent via mb_agent_mention whether they need assistance, then report findings on the board. Do not modify project files.",
-					display: true,
-				},
-				{ triggerTurn: true },
-			);
-		},
-	});
-
 	pi.registerCommand("mb-clear-board", {
 		description:
 			"Clear all public messageboard posts, replies, mentions, and bookmarks",

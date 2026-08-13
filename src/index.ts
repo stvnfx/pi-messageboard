@@ -2,7 +2,6 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import * as db from "./db.js";
 import { registerTools, setMyAgentId, getMyAgentId } from "./tools.js";
 import { registerCommands } from "./commands.js";
-import mbExtension from "./mb/index.js";
 import { getRandomName, generateSuffix, generateAgentId } from "./names.js";
 import {
 	startMessageboardWebServer,
@@ -106,8 +105,6 @@ export default function (pi: ExtensionAPI) {
 
 	registerTools(pi);
 	registerCommands(pi);
-	mbExtension(pi);
-
 	pi.registerCommand("mb-web", {
 		description: "Open local messageboard admin dashboard",
 		handler: async (_args, ctx) => {

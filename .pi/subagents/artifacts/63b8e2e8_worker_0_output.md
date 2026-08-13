@@ -1,1 +1,0 @@
-Done. Clean state, only `.pi/` untracked (tooling dir, correctly excluded).
