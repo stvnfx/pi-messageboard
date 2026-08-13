@@ -160,6 +160,32 @@ describe("rescue model switching", () => {
 		assert.equal(loop.consecutive_stuck, 0);
 		assert.equal(loop.rescue_active, false);
 	});
+
+	it("consecutive_stuck increments on stuck status", () => {
+		const loop = mbDb.createMbLoop("Zeus-r2", "Stuck test", "", 0);
+		mbDb.updateMbLoop(loop.id, { consecutive_stuck: 1 });
+		const updated = mbDb.getMbLoop(loop.id);
+		assert.equal(updated!.consecutive_stuck, 1);
+		mbDb.updateMbLoop(loop.id, { consecutive_stuck: 2 });
+		const updated2 = mbDb.getMbLoop(loop.id);
+		assert.equal(updated2!.consecutive_stuck, 2);
+	});
+
+	it("consecutive_stuck resets on running status", () => {
+		const loop = mbDb.createMbLoop("Zeus-r3", "Reset test", "", 0);
+		mbDb.updateMbLoop(loop.id, { consecutive_stuck: 3, rescue_active: true });
+		mbDb.updateMbLoop(loop.id, { consecutive_stuck: 0, rescue_active: false });
+		const updated = mbDb.getMbLoop(loop.id);
+		assert.equal(updated!.consecutive_stuck, 0);
+		assert.equal(updated!.rescue_active, false);
+	});
+
+	it("check_command stores on loop creation", () => {
+		const loop = mbDb.createMbLoop("Zeus-r4", "Check test", "", 0);
+		mbDb.updateMbLoop(loop.id, { check_command: "npm test" });
+		const updated = mbDb.getMbLoop(loop.id);
+		assert.equal(updated!.check_command, "npm test");
+	});
 });
 
 describe("getLoopDirective", () => {

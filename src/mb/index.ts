@@ -84,7 +84,10 @@ export default function (pi: ExtensionAPI) {
 						(a) =>
 							`${a.id} ${a.status === "online" ? "🟢" : a.status === "busy" ? "🔄" : "⚫"}${a.task ? ` — ${a.task.slice(0, 50)}` : ""}${a.loop_id ? ` [loop ${a.loop_id.slice(0, 8)}]` : ""}`,
 					);
-					ctx.ui.notify(`Agents (${agents.length}):\n${lines.join("\n")}`, "info");
+					ctx.ui.notify(
+						`Agents (${agents.length}):\n${lines.join("\n")}`,
+						"info",
+					);
 					break;
 				}
 				default:

@@ -242,6 +242,14 @@ export function updateMbLoop(id: string, updates: Partial<MbLoop>): void {
 		sets.push("check_command = ?");
 		vals.push(updates.check_command);
 	}
+	if (updates.consecutive_stuck !== undefined) {
+		sets.push("consecutive_stuck = ?");
+		vals.push(updates.consecutive_stuck);
+	}
+	if (updates.rescue_active !== undefined) {
+		sets.push("rescue_active = ?");
+		vals.push(updates.rescue_active ? 1 : 0);
+	}
 	sets.push("last_update = ?");
 	vals.push(Date.now());
 	vals.push(id);
