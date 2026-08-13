@@ -398,6 +398,20 @@ export function searchMessages(query: string, limit = 20): Message[] {
 	return rows.map((r) => ({ ...r, tags: parseTags(r.tags) }));
 }
 
+export function deleteMessage(id: string): void {
+	const d = getDb();
+	d.pragma("foreign_keys = OFF");
+	d.prepare("DELETE FROM bookmarks WHERE message_id = ?").run(id);
+	d.prepare("DELETE FROM mentions WHERE message_id = ?").run(id);
+	d.prepare("DELETE FROM replies WHERE message_id = ?").run(id);
+	d.prepare("DELETE FROM messages WHERE id = ?").run(id);
+	d.pragma("foreign_keys = ON");
+}
+
+export function deleteDirectMessage(id: string): void {
+	getDb().prepare("DELETE FROM inbox WHERE id = ?").run(id);
+}
+
 export function updateMessageStatus(id: string, status: MessageStatus): void {
 	const d = getDb();
 	d.prepare("UPDATE messages SET status = ? WHERE id = ?").run(status, id);
