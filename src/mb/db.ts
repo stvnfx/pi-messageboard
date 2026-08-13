@@ -206,12 +206,21 @@ export function getMbLoop(id: string): MbLoop | null {
 
 export function getAllMbLoops(): MbLoop[] {
 	const d = getDb();
-	const rows = d.prepare("SELECT * FROM mb_loops ORDER BY start_time DESC").all() as any[];
-	return rows.map((r) => ({ ...r, agent_ids: parseJsonArray(r.agent_ids), consecutive_stuck: r.consecutive_stuck ?? 0, rescue_active: Boolean(r.rescue_active) }));
+	const rows = d
+		.prepare("SELECT * FROM mb_loops ORDER BY start_time DESC")
+		.all() as any[];
+	return rows.map((r) => ({
+		...r,
+		agent_ids: parseJsonArray(r.agent_ids),
+		consecutive_stuck: r.consecutive_stuck ?? 0,
+		rescue_active: Boolean(r.rescue_active),
+	}));
 }
 
 export function getActiveMbLoops(): MbLoop[] {
-	return getAllMbLoops().filter((loop) => loop.status === "running" || loop.status === "stuck");
+	return getAllMbLoops().filter(
+		(loop) => loop.status === "running" || loop.status === "stuck",
+	);
 }
 
 export function deleteMbLoop(id: string): void {

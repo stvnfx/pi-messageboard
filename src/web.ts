@@ -119,13 +119,26 @@ export async function startMessageboardWebServer(): Promise<MessageboardWebHandl
 			if (req.method === "POST" && path === "/api/action") {
 				const payload = await body(req);
 				if (payload.name === "clear-board") db.clearBoard();
-				if (payload.name === "clear-inbox" && typeof payload.agentId === "string") db.clearInbox(payload.agentId);
-				if (payload.name === "delete-message" && typeof payload.value === "string") db.deleteMessage(payload.value);
-				if (payload.name === "delete-dm" && typeof payload.value === "string") db.deleteDirectMessage(payload.value);
+				if (
+					payload.name === "clear-inbox" &&
+					typeof payload.agentId === "string"
+				)
+					db.clearInbox(payload.agentId);
+				if (
+					payload.name === "delete-message" &&
+					typeof payload.value === "string"
+				)
+					db.deleteMessage(payload.value);
+				if (payload.name === "delete-dm" && typeof payload.value === "string")
+					db.deleteDirectMessage(payload.value);
 				if (payload.name === "clear-loops") {
 					for (const loop of mbDb.getAllMbLoops()) mbDb.deleteMbLoop(loop.id);
 				}
-				if (payload.name === "stop-loop" && typeof payload.value === "string") mbDb.updateMbLoop(payload.value, { status: "paused", last_notice: "Stopped from web dashboard" });
+				if (payload.name === "stop-loop" && typeof payload.value === "string")
+					mbDb.updateMbLoop(payload.value, {
+						status: "paused",
+						last_notice: "Stopped from web dashboard",
+					});
 				if (payload.name === "toggle-board") db.toggleBoardSessionOnly();
 				if (payload.name === "toggle-inbox") db.toggleInboxSessionOnly();
 				return json(res, 200, { ok: true });

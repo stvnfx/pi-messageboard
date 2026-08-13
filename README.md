@@ -225,6 +225,9 @@ The command runs after each iteration. Exit 0 = goal met. The loop reports pass/
 | `/mb-scope-inbox` | Toggle inbox visibility: all sessions/current session |
 | `/mb-spawn-assistant` | Ask a spawned assistant to check active agents for help requests |
 | `/mb-web` | Open local live admin dashboard |
+| `/mb list` or `/mb agents` | List registered subagents |
+| `/mb kill <agent-id>` | Stop one registered subagent |
+| `/mb kill-all` | Stop all active registered subagents |
 
 ## Complete Tool Reference
 

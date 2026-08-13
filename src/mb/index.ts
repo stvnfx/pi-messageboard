@@ -1,7 +1,12 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { registerSpawnTools, stopAllHeartbeats } from "./spawn.js";
+import { registerSpawnTools, stopAllHeartbeats, stopHeartbeat } from "./spawn.js";
 import { registerLoopTools } from "./loop.js";
 import * as mbDb from "./db.js";
+
+function stopAgent(agentId: string): void {
+	stopHeartbeat(agentId);
+	mbDb.setMbAgentOffline(agentId);
+}
 
 export default function (pi: ExtensionAPI) {
 	// Register all mb tools
@@ -93,6 +98,7 @@ export default function (pi: ExtensionAPI) {
 					ctx.ui.notify(`Stopped ${loops.length} active loop(s).`, "info");
 					break;
 				}
+				case "list":
 				case "agents": {
 					const agents = mbDb.getAllMbAgents();
 					if (agents.length === 0) {
@@ -107,6 +113,27 @@ export default function (pi: ExtensionAPI) {
 						`Agents (${agents.length}):\n${lines.join("\n")}`,
 						"info",
 					);
+					break;
+				}
+				case "kill": {
+					const agentId = remainder.trim();
+					if (!agentId) {
+						ctx.ui.notify("Usage: /mb kill <agent-id>", "error");
+						break;
+					}
+					const agent = mbDb.getMbAgent(agentId);
+					if (!agent) {
+						ctx.ui.notify(`Agent "${agentId}" not found.`, "error");
+						break;
+					}
+					stopAgent(agentId);
+					ctx.ui.notify(`Stopped subagent ${agentId}.`, "info");
+					break;
+				}
+				case "kill-all": {
+					const agents = mbDb.getOnlineMbAgents();
+					for (const agent of agents) stopAgent(agent.id);
+					ctx.ui.notify(`Stopped ${agents.length} active subagent(s).`, "info");
 					break;
 				}
 				case "goal": {
@@ -249,7 +276,7 @@ export default function (pi: ExtensionAPI) {
 				}
 				default:
 					ctx.ui.notify(
-						"Usage: /mb <status|spawn|loop|stop|agents|goal|resume|finish|end|stats|help>",
+						"Usage: /mb <status|spawn|loop|stop|list|agents|kill|kill-all|goal|resume|finish|end|stats|help>",
 						"info",
 					);
 			}
