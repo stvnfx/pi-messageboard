@@ -33,7 +33,15 @@ export default function (pi: ExtensionAPI) {
 		description:
 			"Messageboard agent management: /mb spawn, /mb status, /mb loop, /mb stop",
 		getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
-			const parts = prefix.split(/\s+/);
+			const trimmed = prefix.trim();
+			if (!trimmed) {
+				const subcommands = [
+					"status", "spawn", "loop", "stop", "list", "agents", "kill",
+					"kill-all", "goal", "prepare", "resume", "finish", "end", "stats", "help",
+				];
+				return subcommands.map((value) => ({ value, label: value }));
+			}
+			const parts = trimmed.split(/\s+/);
 			const subcommands = [
 				"status",
 				"spawn",
