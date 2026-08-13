@@ -1,26 +1,10 @@
-import { describe, it, beforeEach } from 'node:test';
+import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import * as db from '../db.js';
 import { setMyAgentId } from '../tools.js';
 import { extractMentions } from '../db.js';
 
-// ─── Mock Pi context ────────────────────────────────────────────────
-
-function mockCtx() {
-  return {
-    ui: {
-      notify: () => {},
-      setStatus: () => {},
-    },
-    sessionManager: {
-      getSessionId: () => 'test-session-123',
-    },
-  };
-}
-
-function mockOnUpdate() {
-  return (_data: unknown) => {};
-}
+db.resetAll(); // Clear file-backed DB before tests
 
 // ─── Tests ──────────────────────────────────────────────────────────
 
@@ -91,60 +75,62 @@ describe('tool messageboard_reply', () => {
 
 describe('tool agent_send_dm', () => {
   it('sends a DM between agents', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.registerAgent('session-2', 'Loki', 'b7c1');
-    const dm = db.sendDirectMessage('Zeus-a3f2', 'Loki-b7c1', 'Hello', 'Need help');
-    assert.equal(dm.from_agent, 'Zeus-a3f2');
-    assert.equal(dm.to_agent, 'Loki-b7c1');
-    assert.equal(dm.read, false);
+    db.registerAgent('session-dm-1', 'Zeus', 'dm1');
+    db.registerAgent('session-dm-2', 'Loki', 'dm2');
+    const dm = db.sendDirectMessage('Zeus-dm1', 'Loki-dm2', 'Hello', 'Need help');
+    assert.equal(dm.from_agent, 'Zeus-dm1');
+    assert.equal(dm.to_agent, 'Loki-dm2');
+    assert.ok(!dm.read, 'DM should be unread');
   });
 
   it('agent can read their inbox', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.registerAgent('session-2', 'Loki', 'b7c1');
-    db.sendDirectMessage('Zeus-a3f2', 'Loki-b7c1', 'Msg 1', 'body');
-    db.sendDirectMessage('Zeus-a3f2', 'Loki-b7c1', 'Msg 2', 'body');
-    const inbox = db.getInbox('Loki-b7c1', false);
+    db.registerAgent('session-inb-1', 'Ares', 'in1');
+    db.registerAgent('session-inb-2', 'Hel', 'in2');
+    db.sendDirectMessage('Ares-in1', 'Hel-in2', 'Msg 1', 'body');
+    db.sendDirectMessage('Ares-in1', 'Hel-in2', 'Msg 2', 'body');
+    const inbox = db.getInbox('Hel-in2', false);
     assert.equal(inbox.length, 2);
   });
 
   it('can filter unread only', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.registerAgent('session-2', 'Loki', 'b7c1');
-    db.sendDirectMessage('Zeus-a3f2', 'Loki-b7c1', 'Read', 'body');
-    const dm2 = db.sendDirectMessage('Zeus-a3f2', 'Loki-b7c1', 'Unread', 'body');
-    db.markAsRead(dm2.id);
-    const unread = db.getInbox('Loki-b7c1', true);
+    db.registerAgent('session-ur-1', 'Thor', 'ur1');
+    db.registerAgent('session-ur-2', 'Sif', 'ur2');
+    const dm1 = db.sendDirectMessage('Thor-ur1', 'Sif-ur2', 'Read', 'body');
+    db.sendDirectMessage('Thor-ur1', 'Sif-ur2', 'Unread', 'body');
+    db.markAsRead(dm1.id);
+    const unread = db.getInbox('Sif-ur2', true);
     assert.equal(unread.length, 1);
-    assert.equal(unread[0].subject, 'Read');
+    assert.equal(unread[0].subject, 'Unread');
   });
 });
 
 describe('tool agent_list_online', () => {
   it('lists online agents', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.registerAgent('session-2', 'Loki', 'b7c1');
-    db.setAgentOffline('Loki-b7c1');
+    db.registerAgent('session-lo-1', 'Hermes', 'lo1');
+    db.registerAgent('session-lo-2', 'Sif', 'lo2');
+    db.setAgentOffline('Sif-lo2');
     const online = db.getOnlineAgents();
-    assert.equal(online.length, 1);
-    assert.equal(online[0].id, 'Zeus-a3f2');
+    assert.ok(online.length >= 1, 'Should have at least one online agent');
+    assert.ok(online.some(a => a.id === 'Hermes-lo1'), 'Hermes should be online');
+    assert.ok(!online.some(a => a.id === 'Sif-lo2'), 'Sif should be offline');
   });
 });
 
 describe('tool messageboard_search', () => {
   it('searches by subject', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.createMessage('Zeus-a3f2', 'help', 'Auth middleware broken', 'body');
-    db.createMessage('Zeus-a3f2', 'info', 'CI pipeline updated', 'body');
-    const results = db.searchMessages('auth');
+    db.registerAgent('session-sr-1', 'Poseidon', 'sr1');
+    db.createMessage('Poseidon-sr1', 'help', 'Unique search subject XYZ', 'body');
+    db.createMessage('Poseidon-sr1', 'info', 'Other message ABC', 'body');
+    const results = db.searchMessages('XYZ');
     assert.equal(results.length, 1);
-    assert.equal(results[0].subject, 'Auth middleware broken');
+    assert.equal(results[0].subject, 'Unique search subject XYZ');
   });
 
   it('searches by body', () => {
-    db.registerAgent('session-1', 'Zeus', 'a3f2');
-    db.createMessage('Zeus-a3f2', 'help', 'Help needed', 'Token refresh failing');
-    const results = db.searchMessages('token');
+    db.registerAgent('session-sr-2', 'Hades', 'sr2');
+    db.createMessage('Hades-sr2', 'help', 'Help needed', 'Unique body content QRS');
+    db.createMessage('Hades-sr2', 'info', 'Other', 'Other content');
+    const results = db.searchMessages('QRS');
     assert.equal(results.length, 1);
   });
 });

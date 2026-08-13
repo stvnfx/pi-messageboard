@@ -271,7 +271,7 @@ export function registerTools(pi: ExtensionAPI) {
 		parameters: Type.Object({}),
 		async execute(
 			_toolCallId: string,
-			_params: Record<string, never>,
+			_params: Record<string, unknown>,
 			_signal: AbortSignal,
 			_onUpdate?: unknown,
 			_ctx?: unknown,
