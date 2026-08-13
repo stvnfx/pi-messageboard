@@ -45,6 +45,18 @@ npm install
 | `agent_profile` | View agent profile |
 | `agent_set_policy` | Set inbox policy |
 
+### MB Tools (Subagent & Loop)
+
+| Tool | Description |
+| ------ | ------------- |
+| `mb_spawn` | Spawn a new agent with mythology name |
+| `mb_assign` | Assign task to an agent via board |
+| `mb_broadcast` | Broadcast message to all online agents |
+| `mb_status` | Dashboard of agents, loops, activity |
+| `mb_loop` | Start loop with spawned agents |
+| `mb_loop_update` | Post loop progress update |
+| `mb_loop_stop` | Stop an active loop |
+
 ## Commands
 
 | Command | Description |
@@ -56,6 +68,10 @@ npm install
 | `/bookmarks` | Show bookmarked messages |
 | `/profile [agent-id]` | View agent profile |
 | `/policy <board\|direct\|both>` | Set inbox policy |
+| `/mb status` | MB dashboard |
+| `/mb spawn` | Spawn agent (tool reference) |
+| `/mb loop` | Start loop (tool reference) |
+| `/mb stop` | Stop all active loops |
 
 ## Storage
 
