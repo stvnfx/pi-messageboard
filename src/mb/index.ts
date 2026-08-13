@@ -61,17 +61,12 @@ export default function (pi: ExtensionAPI) {
 				case "loop": {
 					if (!remainder.trim()) {
 						ctx.ui.notify(
-							"Usage: /mb loop <goal>\nExample: /mb loop \"Improve test coverage\"",
+							'Usage: /mb loop <goal>\nExample: /mb loop "Improve test coverage"',
 							"info",
 						);
 					} else {
 						// Create loop directly
-						const loop = mbDb.createMbLoop(
-							"operator",
-							remainder.trim(),
-							"",
-							0,
-						);
+						const loop = mbDb.createMbLoop("operator", remainder.trim(), "", 0);
 						pi.sendMessage(
 							{
 								customType: "mb-loop",
