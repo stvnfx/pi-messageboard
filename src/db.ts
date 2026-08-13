@@ -49,10 +49,12 @@ function initSchema(db: Database.Database) {
     CREATE TABLE IF NOT EXISTS replies (
       id TEXT PRIMARY KEY,
       message_id TEXT NOT NULL,
+      parent_reply_id TEXT,
       author TEXT NOT NULL,
       timestamp INTEGER NOT NULL,
       body TEXT NOT NULL,
       FOREIGN KEY (message_id) REFERENCES messages(id),
+      FOREIGN KEY (parent_reply_id) REFERENCES replies(id),
       FOREIGN KEY (author) REFERENCES agents(id)
     );
 
@@ -148,11 +150,15 @@ export function createMessage(author: string, category: Category, subject: strin
   return getMessage(id)!;
 }
 
+function parseTags(tags: string): string[] {
+  try { return JSON.parse(tags); } catch { return []; }
+}
+
 export function getMessage(id: string): Message | null {
   const d = getDb();
   const row = d.prepare('SELECT * FROM messages WHERE id = ?').get(id) as any;
   if (!row) return null;
-  return { ...row, tags: JSON.parse(row.tags) };
+  return { ...row, tags: parseTags(row.tags) };
 }
 
 export function getMessages(opts: { category?: Category; status?: MessageStatus; author?: string; tag?: string; assignedTo?: string; limit?: number } = {}): Message[] {
@@ -171,7 +177,7 @@ export function getMessages(opts: { category?: Category; status?: MessageStatus;
 
   const rows = d.prepare(`SELECT * FROM messages ${where} ORDER BY timestamp DESC LIMIT ?`)
     .all(...params, limit) as any[];
-  return rows.map(r => ({ ...r, tags: JSON.parse(r.tags) }));
+  return rows.map(r => ({ ...r, tags: parseTags(r.tags) }));
 }
 
 export function searchMessages(query: string, limit = 20): Message[] {
@@ -181,7 +187,7 @@ export function searchMessages(query: string, limit = 20): Message[] {
     WHERE subject LIKE ? OR body LIKE ?
     ORDER BY timestamp DESC LIMIT ?
   `).all(`%${query}%`, `%${query}%`, limit) as any[];
-  return rows.map(r => ({ ...r, tags: JSON.parse(r.tags) }));
+  return rows.map(r => ({ ...r, tags: parseTags(r.tags) }));
 }
 
 export function updateMessageStatus(id: string, status: MessageStatus): void {
@@ -197,12 +203,12 @@ export function assignMessage(id: string, assignedTo: string): void {
 
 // ─── Reply Operations ──────────────────────────────────────────────
 
-export function createReply(messageId: string, author: string, body: string): Reply {
+export function createReply(messageId: string, author: string, body: string, parentReplyId?: string): Reply {
   const d = getDb();
   const id = randomUUID();
   const now = Date.now();
-  d.prepare('INSERT INTO replies (id, message_id, author, timestamp, body) VALUES (?, ?, ?, ?, ?)')
-    .run(id, messageId, author, now, body);
+  d.prepare('INSERT INTO replies (id, message_id, author, timestamp, body, parent_reply_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(id, messageId, author, now, body, parentReplyId ?? null);
   return getReply(id)!;
 }
 
@@ -215,6 +221,15 @@ export function getReplies(messageId: string): Reply[] {
   const d = getDb();
   return d.prepare('SELECT * FROM replies WHERE message_id = ? ORDER BY timestamp ASC')
     .all(messageId) as Reply[];
+}
+
+export function getThreadedReplies(messageId: string): Reply[] {
+  const d = getDb();
+  return d.prepare(
+    `SELECT r.* FROM replies r
+     WHERE r.message_id = ?
+     ORDER BY r.timestamp ASC`
+  ).all(messageId) as Reply[];
 }
 
 // ─── Inbox Operations ──────────────────────────────────────────────
@@ -266,7 +281,7 @@ export function getBookmarks(agentId: string): Message[] {
     WHERE b.agent_id = ?
     ORDER BY b.timestamp DESC
   `).all(agentId) as any[];
-  return rows.map(r => ({ ...r, tags: JSON.parse(r.tags) }));
+  return rows.map(r => ({ ...r, tags: parseTags(r.tags) }));
 }
 
 export function removeBookmark(agentId: string, messageId: string): void {

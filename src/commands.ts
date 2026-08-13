@@ -66,4 +66,20 @@ export function registerCommands(pi: ExtensionAPI) {
       ctx.ui.notify(lines.join('\n'), 'info');
     },
   });
+
+  pi.registerCommand('bookmarks', {
+    description: 'Show your bookmarked messages',
+    handler: async (_args, ctx) => {
+      const agentId = getMyAgentId();
+      const messages = db.getBookmarks(agentId);
+      if (messages.length === 0) {
+        ctx.ui.notify('No bookmarks yet.', 'info');
+        return;
+      }
+      const lines = messages.map(m =>
+        `[${m.id.slice(0, 8)}] ${m.category.toUpperCase()}: ${m.subject} — ${m.author}`
+      );
+      ctx.ui.notify(lines.join('\n'), 'info');
+    },
+  });
 }

@@ -23,6 +23,7 @@ export interface Message {
 export interface Reply {
   id: string;
   message_id: string;      // parent message id
+  parent_reply_id?: string; // for threading
   author: string;
   timestamp: number;
   body: string;

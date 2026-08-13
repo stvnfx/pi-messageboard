@@ -108,6 +108,7 @@ export function registerTools(pi: ExtensionAPI) {
     parameters: Type.Object({
       message_id: Type.String({ description: 'ID of the message to reply to' }),
       body: Type.String({ description: 'Reply body (supports markdown)' }),
+      parent_reply_id: Type.Optional(Type.String({ description: 'ID of the parent reply for threading (optional)' })),
     }),
     async execute(toolCallId, params, signal, onUpdate, ctx) {
       const agentId = getMyAgentId();
@@ -115,7 +116,7 @@ export function registerTools(pi: ExtensionAPI) {
       if (!msg) {
         return { content: [{ type: 'text', text: `Message ${params.message_id} not found.` }], details: {}, isError: true };
       }
-      const reply = db.createReply(params.message_id, agentId, params.body);
+      const reply = db.createReply(params.message_id, agentId, params.body, params.parent_reply_id);
       return {
         content: [{ type: 'text', text: `Replied to "${msg.subject}" (${reply.id.slice(0, 8)})` }],
         details: { replyId: reply.id },
@@ -182,7 +183,7 @@ export function registerTools(pi: ExtensionAPI) {
       'Use agent_list_online to see who is available for direct communication.',
     ],
     parameters: Type.Object({}),
-    async execute(_toolCallId: string, _params: Record<string, never>, _signal: AbortSignal) {
+    async execute(_toolCallId: string, _params: Record<string, never>, _signal: AbortSignal, _onUpdate?: unknown, _ctx?: unknown) {
       const agents = db.getOnlineAgents();
       if (agents.length === 0) {
         return { content: [{ type: 'text', text: 'No agents currently online.' }], details: {} };
@@ -251,6 +252,62 @@ export function registerTools(pi: ExtensionAPI) {
         if (!dm.read) db.markAsRead(dm.id);
       }
       return { content: [{ type: 'text', text: `Inbox (${dms.length} messages):\n${formatted}` }], details: { count: dms.length } };
+    },
+  });
+
+  // ─── Bookmark Tools ──────────────────────────────────────────────
+
+  pi.registerTool({
+    name: 'messageboard_bookmark',
+    label: 'Bookmark Message',
+    description: 'Save a message to your bookmarks for later reference',
+    promptSnippet: 'Bookmark a board message',
+    promptGuidelines: [
+      'Use messageboard_bookmark to save useful messages for later.',
+    ],
+    parameters: Type.Object({
+      message_id: Type.String({ description: 'ID of the message to bookmark' }),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const agentId = getMyAgentId();
+      const msg = db.getMessage(params.message_id);
+      if (!msg) {
+        return { content: [{ type: 'text', text: `Message ${params.message_id} not found.` }], details: {}, isError: true };
+      }
+      db.addBookmark(agentId, params.message_id);
+      return {
+        content: [{ type: 'text', text: `Bookmarked: "${msg.subject}"` }],
+        details: { bookmarked: true },
+      };
+    },
+  });
+
+  pi.registerTool({
+    name: 'messageboard_read_thread',
+    label: 'Read Thread',
+    description: 'Read all replies in a message thread',
+    promptSnippet: 'Read message thread',
+    promptGuidelines: [
+      'Use messageboard_read_thread to see the full conversation on a message.',
+    ],
+    parameters: Type.Object({
+      message_id: Type.String({ description: 'ID of the message thread to read' }),
+    }),
+    async execute(toolCallId, params, signal, onUpdate, ctx) {
+      const msg = db.getMessage(params.message_id);
+      if (!msg) {
+        return { content: [{ type: 'text', text: `Message ${params.message_id} not found.` }], details: {}, isError: true };
+      }
+      const replies = db.getThreadedReplies(params.message_id);
+      const header = `[${msg.id.slice(0, 8)}] ${msg.category.toUpperCase()}: ${msg.subject}\n  by ${msg.author} | ${new Date(msg.timestamp).toISOString()}\n  ${msg.body}`;
+      if (replies.length === 0) {
+        return { content: [{ type: 'text', text: header + '\n\nNo replies yet.' }], details: {} };
+      }
+      const replyText = replies.map((r, i) => {
+        const indent = r.parent_reply_id ? '  └─ ' : '  ';
+        return `${indent}[${i + 1}] ${r.author} (${new Date(r.timestamp).toISOString()}):\n      ${r.body}`;
+      }).join('\n');
+      return { content: [{ type: 'text', text: `${header}\n\nReplies (${replies.length}):\n${replyText}` }], details: { replyCount: replies.length } };
     },
   });
 }
