@@ -3,7 +3,7 @@
 ## Open
 
 - [x] `src/mb/db.ts` — Register agents in board.db when spawning via mb.db (fix FK constraint)
-- [ ] `src/mb/index.ts` — /mb loop command should actually start a loop, not just say "use the tool"
+- [x] `src/mb/index.ts` — /mb loop command should actually start a loop, not just say "use the tool"
 - [ ] `src/index.ts` — Verify extension loads in Pi (test with /reload)
 - [ ] `src/mb/spawn.ts` — mb_spawn should register agent in both board.db and mb.db
 - [ ] `src/mb/loop.ts` — Fix unused parameter warnings (prefix with _)

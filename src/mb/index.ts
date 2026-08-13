@@ -59,7 +59,29 @@ export default function (pi: ExtensionAPI) {
 					break;
 				}
 				case "loop": {
-					ctx.ui.notify("Use the mb_loop tool to start a loop.", "info");
+					if (!remainder.trim()) {
+						ctx.ui.notify(
+							"Usage: /mb loop <goal>\nExample: /mb loop \"Improve test coverage\"",
+							"info",
+						);
+					} else {
+						// Create loop directly
+						const loop = mbDb.createMbLoop(
+							"operator",
+							remainder.trim(),
+							"",
+							0,
+						);
+						pi.sendMessage(
+							{
+								customType: "mb-loop",
+								content: `Loop started: ${loop.id.slice(0, 8)}\nGoal: ${loop.goal}\n\nUse mb_loop_update to report progress.`,
+								display: true,
+								details: { kind: "loop_start", loopId: loop.id },
+							},
+							{ triggerTurn: true },
+						);
+					}
 					break;
 				}
 				case "stop": {
