@@ -1,5 +1,9 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
-import { registerSpawnTools, stopAllHeartbeats, stopHeartbeat } from "./spawn.js";
+import {
+	registerSpawnTools,
+	stopAllHeartbeats,
+	stopHeartbeat,
+} from "./spawn.js";
 import { registerLoopTools } from "./loop.js";
 import * as mbDb from "./db.js";
 
