@@ -399,7 +399,9 @@ export function removeBookmark(agentId: string, messageId: string): void {
 
 export function resetAll(): void {
 	const d = getDb();
-	d.exec("DELETE FROM bookmarks; DELETE FROM inbox; DELETE FROM replies; DELETE FROM messages; DELETE FROM agents;");
+	d.exec(
+		"DELETE FROM bookmarks; DELETE FROM inbox; DELETE FROM replies; DELETE FROM messages; DELETE FROM agents;",
+	);
 }
 
 export function closeDb(): void {
