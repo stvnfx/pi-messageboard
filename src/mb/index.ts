@@ -1,4 +1,6 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+
+type AutocompleteItem = { value: string; label: string };
 import {
 	registerSpawnTools,
 	stopAllHeartbeats,
@@ -30,6 +32,25 @@ export default function (pi: ExtensionAPI) {
 	pi.registerCommand("mb", {
 		description:
 			"Messageboard agent management: /mb spawn, /mb status, /mb loop, /mb stop",
+		getArgumentCompletions: (prefix: string): AutocompleteItem[] | null => {
+			const parts = prefix.split(/\s+/);
+			const subcommands = [
+				"status", "spawn", "loop", "stop", "list", "agents", "kill",
+				"kill-all", "goal", "prepare", "resume", "finish", "end", "stats", "help",
+			];
+			if (parts.length <= 1) {
+				const matches = subcommands.filter((command) => command.startsWith(parts[0] ?? ""));
+				return matches.length ? matches.map((value) => ({ value, label: value })) : null;
+			}
+			if (parts[0] === "kill") {
+				const query = parts.slice(1).join(" ");
+				const matches = mbDb.getOnlineMbAgents()
+					.map((agent) => agent.id)
+					.filter((id) => id.startsWith(query));
+				return matches.length ? matches.map((value) => ({ value, label: value })) : null;
+			}
+			return null;
+		},
 		handler: async (args, ctx) => {
 			const parts = args.trim().split(/\s+/);
 			const subcommand = parts[0] || "status";
