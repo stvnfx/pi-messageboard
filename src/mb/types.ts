@@ -27,6 +27,9 @@ export interface MbLoop {
 	last_notice: string;
 	check_command?: string;
 	model?: string;
+	rescue_model?: string;
+	consecutive_stuck: number;
+	rescue_active: boolean;
 }
 
 export interface MbTaskAssignment {

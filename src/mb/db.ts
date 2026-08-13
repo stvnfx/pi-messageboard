@@ -51,7 +51,10 @@ function initSchema(db: Database.Database) {
       last_update INTEGER NOT NULL,
       last_notice TEXT DEFAULT '',
       check_command TEXT,
-      model TEXT
+      model TEXT,
+      rescue_model TEXT,
+      consecutive_stuck INTEGER DEFAULT 0,
+      rescue_active INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS mb_task_assignments (
@@ -167,13 +170,14 @@ export function createMbLoop(
 	criteria: string,
 	maxIterations: number,
 	model?: string,
+	rescueModel?: string,
 ): MbLoop {
 	const d = getDb();
 	const id = randomUUID();
 	const now = Date.now();
 	d.prepare(`
-    INSERT INTO mb_loops (id, owner_agent, goal, criteria, status, iteration, max_iterations, agent_ids, start_time, last_update, model)
-    VALUES (?, ?, ?, ?, 'running', 0, ?, '[]', ?, ?, ?)
+    INSERT INTO mb_loops (id, owner_agent, goal, criteria, status, iteration, max_iterations, agent_ids, start_time, last_update, model, rescue_model, consecutive_stuck, rescue_active)
+    VALUES (?, ?, ?, ?, 'running', 0, ?, '[]', ?, ?, ?, ?, 0, 0)
   `).run(
 		id,
 		ownerAgent,
@@ -183,6 +187,7 @@ export function createMbLoop(
 		now,
 		now,
 		model ?? null,
+		rescueModel ?? null,
 	);
 	return getMbLoop(id)!;
 }
@@ -191,7 +196,7 @@ export function getMbLoop(id: string): MbLoop | null {
 	const d = getDb();
 	const row = d.prepare("SELECT * FROM mb_loops WHERE id = ?").get(id) as any;
 	if (!row) return null;
-	return { ...row, agent_ids: parseJsonArray(row.agent_ids) };
+	return { ...row, agent_ids: parseJsonArray(row.agent_ids), consecutive_stuck: row.consecutive_stuck ?? 0, rescue_active: Boolean(row.rescue_active) };
 }
 
 export function getActiveMbLoops(): MbLoop[] {

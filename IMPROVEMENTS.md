@@ -9,7 +9,7 @@
 - [x] `README.md` — Add mb/ commands table (/mb status, /mb spawn, /mb loop, /mb stop)
 - [x] `src/mb/loop.ts` — Add JSONL iteration logging (append to ~/.pi/agent/messageboard/loop.log)
 - [x] `src/mb/loop.ts` — Add fingerprint-based stuck detection (SHA256 of response text, detect repeats)
-- [ ] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
+- [x] `src/mb/loop.ts` — Add rescue model switching (configurable stronger model for stuck loops)
 - [ ] `src/mb/loop.ts` — Add goal check command (run shell command, check exit code)
 - [ ] `src/mb/spawn.ts` — Add mb_agent_reply tool (reply to board messages as spawned agent)
 - [ ] `src/mb/spawn.ts` — Add mb_agent_mention tool (notify specific agent via DM)

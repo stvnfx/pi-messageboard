@@ -2,7 +2,12 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import * as mbDb from "../../mb/db.js";
 import * as boardDb from "../../db.js";
-import { getLoopDirective, fingerprint, textSimilarity, detectStuck } from "../../mb/loop.js";
+import {
+	getLoopDirective,
+	fingerprint,
+	textSimilarity,
+	detectStuck,
+} from "../../mb/loop.js";
 
 mbDb.resetMbAll();
 
@@ -28,13 +33,9 @@ describe("mb_loop tool logic", () => {
 
 		const agentId = "Ares-lp2";
 		regAgent(agentId, "Ares");
-		boardDb.createMessage(
-			agentId,
-			"info",
-			"Ares spawned",
-			"Joined",
-			["mb-spawn"],
-		);
+		boardDb.createMessage(agentId, "info", "Ares spawned", "Joined", [
+			"mb-spawn",
+		]);
 		mbDb.addAgentToLoop(loop.id, agentId);
 
 		const updated = mbDb.getMbLoop(loop.id);
@@ -86,37 +87,57 @@ describe("mb_loop tool logic", () => {
 });
 
 describe("fingerprint and stuck detection", () => {
-  it("fingerprints same text consistently", () => {
-    assert.equal(fingerprint("hello world"), fingerprint("hello world"));
-    assert.notEqual(fingerprint("hello"), fingerprint("world"));
-  });
+	it("fingerprints same text consistently", () => {
+		assert.equal(fingerprint("hello world"), fingerprint("hello world"));
+		assert.notEqual(fingerprint("hello"), fingerprint("world"));
+	});
 
-  it("textSimilarity scores identical text high", () => {
-    assert.ok(textSimilarity("hello world foo", "hello world foo") > 0.9);
-  });
+	it("textSimilarity scores identical text high", () => {
+		assert.ok(textSimilarity("hello world foo", "hello world foo") > 0.9);
+	});
 
-  it("textSimilarity scores different text low", () => {
-    assert.ok(textSimilarity("completely different content here", "hello world foo bar") < 0.3);
-  });
+	it("textSimilarity scores different text low", () => {
+		assert.ok(
+			textSimilarity(
+				"completely different content here",
+				"hello world foo bar",
+			) < 0.3,
+		);
+	});
 
-  it("detectStuck returns false for unique responses", () => {
-    const result = detectStuck([], [], "First unique response");
-    assert.equal(result.stuck, false);
-  });
+	it("detectStuck returns false for unique responses", () => {
+		const result = detectStuck([], [], "First unique response");
+		assert.equal(result.stuck, false);
+	});
 
-  it("detectStuck detects repeated fingerprints", () => {
-    const fp = fingerprint("same response");
-    const result = detectStuck([fp, fp, fp], ["same response", "same response", "same response"], "same response");
-    assert.equal(result.stuck, true);
-    assert.ok(result.reason!.includes("repeated"));
-  });
+	it("detectStuck detects repeated fingerprints", () => {
+		const fp = fingerprint("same response");
+		const result = detectStuck(
+			[fp, fp, fp],
+			["same response", "same response", "same response"],
+			"same response",
+		);
+		assert.equal(result.stuck, true);
+		assert.ok(result.reason!.includes("repeated"));
+	});
 
-  it("detectStuck detects near-duplicates", () => {
-    const prev = "The quick brown fox jumps over the lazy dog and runs away quickly across the field";
-    const curr = "The quick brown fox jumps over the lazy dog and runs away quickly across the field!";
-    const result = detectStuck([fingerprint(prev)], [prev], curr);
-    assert.equal(result.stuck, true);
-    assert.ok(result.reason!.includes("similar"));
+	it("detectStuck detects near-duplicates", () => {
+		const prev =
+			"The quick brown fox jumps over the lazy dog and runs away quickly across the field";
+		const curr =
+			"The quick brown fox jumps over the lazy dog and runs away quickly across the field!";
+		const result = detectStuck([fingerprint(prev)], [prev], curr);
+		assert.equal(result.stuck, true);
+		assert.ok(result.reason!.includes("similar"));
+	});
+});
+
+describe("rescue model switching", () => {
+  it("triggers rescue after 3 stuck interventions", () => {
+    const loop = mbDb.createMbLoop("Zeus-r1", "Rescue me", "", 0, undefined, "claude-opus");
+    assert.equal(loop.rescue_model, "claude-opus");
+    assert.equal(loop.consecutive_stuck, 0);
+    assert.equal(loop.rescue_active, false);
   });
 });
 

@@ -47,7 +47,11 @@ const REPEAT_WINDOW = 3;
 const SIMILARITY_THRESHOLD = 0.8;
 
 export function fingerprint(text: string): string {
-	const normalized = text.replace(/\s+/g, " ").trim().toLowerCase().slice(0, 2000);
+	const normalized = text
+		.replace(/\s+/g, " ")
+		.trim()
+		.toLowerCase()
+		.slice(0, 2000);
 	return createHash("sha256").update(normalized).digest("hex").slice(0, 16);
 }
 
@@ -58,7 +62,8 @@ function wordShingles(text: string, n = 3): Set<string> {
 		if (words.length > 0) set.add(words.join(" "));
 		return set;
 	}
-	for (let i = 0; i <= words.length - n; i++) set.add(words.slice(i, i + n).join(" "));
+	for (let i = 0; i <= words.length - n; i++)
+		set.add(words.slice(i, i + n).join(" "));
 	return set;
 }
 
@@ -85,9 +90,14 @@ export function detectStuck(
 	const currentFp = fingerprint(currentText);
 
 	// Check exact fingerprint repeats
-	const recentCount = recentFingerprints.filter(fp => fp === currentFp).length;
+	const recentCount = recentFingerprints.filter(
+		(fp) => fp === currentFp,
+	).length;
 	if (recentCount >= REPEAT_WINDOW) {
-		return { stuck: true, reason: `same response repeated ${recentCount + 1}x (fingerprint ${currentFp})` };
+		return {
+			stuck: true,
+			reason: `same response repeated ${recentCount + 1}x (fingerprint ${currentFp})`,
+		};
 	}
 
 	// Check near-duplicate via text similarity
@@ -96,7 +106,10 @@ export function detectStuck(
 		if (prev && currentText.length > 60) {
 			const sim = textSimilarity(currentText, prev);
 			if (sim >= SIMILARITY_THRESHOLD) {
-				return { stuck: true, reason: `response ~${Math.round(sim * 100)}% similar to previous` };
+				return {
+					stuck: true,
+					reason: `response ~${Math.round(sim * 100)}% similar to previous`,
+				};
 			}
 		}
 	}
@@ -124,6 +137,9 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				Type.Number({ description: "Max iterations (0=infinite)" }),
 			),
 			model: Type.Optional(Type.String({ description: "Model for agents" })),
+			rescue_model: Type.Optional(
+				Type.String({ description: "Stronger model for stuck loops" }),
+			),
 			spawn_count: Type.Optional(
 				Type.Number({ description: "Number of agents to spawn (default 1)" }),
 			),
@@ -157,6 +173,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				goal: params.goal,
 				agentCount: params.spawn_count ?? 1,
 				model: params.model,
+				rescueModel: params.rescue_model,
 			});
 
 			// Spawn agents
@@ -173,6 +190,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 					name,
 					suffix,
 					status: "online",
+					last_heartbeat: Date.now(),
 					spawned_by: myId,
 					task: params.goal,
 					task_post_id: msg.id,
@@ -263,6 +281,21 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				message: params.message.slice(0, 200),
 			});
 
+			// Rescue model switching for stuck loops
+			let rescueDirective = "";
+			if (params.status === "stuck" && loop.rescue_model && !loop.rescue_active) {
+				const newStuck = (loop.consecutive_stuck || 0) + 1;
+				mbDb.updateMbLoop(params.loop_id, { consecutive_stuck: newStuck });
+				if (newStuck >= 3) {
+					mbDb.updateMbLoop(params.loop_id, { rescue_active: true, consecutive_stuck: 0 });
+					rescueDirective = `\n\nRESCUE TURN: Switch to model ${loop.rescue_model}. Inspect the project state, fix or finish ONE concrete thing, then report with mb_loop_update.`;
+					logLoopEvent("rescue_start", { loopId: params.loop_id, model: loop.rescue_model });
+				}
+			} else if (params.status === "running" && loop.rescue_active) {
+				mbDb.updateMbLoop(params.loop_id, { rescue_active: false });
+				logLoopEvent("rescue_end", { loopId: params.loop_id });
+			}
+
 			if (params.status === "completed") {
 				// Stop all agents in this loop
 				for (const agentId of loop.agent_ids) {
@@ -271,14 +304,16 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				}
 			}
 
+			const responseText = `Loop ${params.loop_id.slice(0, 8)} updated: ${params.status} (iter ${params.iteration})${rescueDirective}`;
+
 			return {
 				content: [
 					{
 						type: "text",
-						text: `Loop ${params.loop_id.slice(0, 8)} updated: ${params.status} (iter ${params.iteration})`,
+						text: responseText,
 					},
 				],
-				details: { loopId: params.loop_id, status: params.status },
+				details: { loopId: params.loop_id, status: params.status, rescueDirective: rescueDirective || undefined },
 			};
 		},
 	});
