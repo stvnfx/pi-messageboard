@@ -1,81 +1,84 @@
 #!/bin/bash
-# Goal check script for pi-messageboard improvement loop
-# Exit 0 = criteria met, SCORE: n = progress metric
-
+# Goal check script for pi-messageboard bug fixes
 set -e
-
 cd "$(dirname "$0")"
 
 SCORE=0
 ISSUES=0
 
 # 1. All unit tests pass
-echo "=== Running unit tests ==="
-if node --import tsx --test src/__tests__/names.test.ts src/__tests__/db.test.ts src/__tests__/tools.test.ts 2>&1 | grep -q "fail 0"; then
-	SCORE=$((SCORE + 25))
+echo "=== Unit tests ==="
+if node --import tsx --test src/__tests__/names.test.ts src/__tests__/db.test.ts src/__tests__/tools.test.ts src/__tests__/mb/db.test.ts src/__tests__/mb/spawn.test.ts src/__tests__/mb/loop.test.ts src/__tests__/integration-mb.test.ts 2>&1 | grep -q "fail 0"; then
+	SCORE=$((SCORE + 30))
 	echo "✓ All unit tests pass"
 else
 	ISSUES=$((ISSUES + 1))
 	echo "✗ Some unit tests fail"
 fi
 
-# 2. mb/ tests exist and pass
+# 2. TypeScript compiles
 echo ""
-echo "=== Running mb/ tests ==="
-MB_TEST_FILES=$(find src/__tests__ -name "mb*.test.ts" 2>/dev/null | wc -l)
-if [ "$MB_TEST_FILES" -gt 0 ]; then
-	if node --import tsx --test src/__tests__/mb*.test.ts 2>&1 | grep -q "fail 0"; then
-		SCORE=$((SCORE + 25))
-		echo "✓ mb/ tests pass ($MB_TEST_FILES test files)"
-	else
-		ISSUES=$((ISSUES + 1))
-		echo "✗ mb/ tests fail"
-	fi
-else
-	echo "⚠ No mb/ test files found"
-fi
-
-# 3. TypeScript compiles cleanly
-echo ""
-echo "=== TypeScript check ==="
+echo "=== TypeScript ==="
 if npx tsc --noEmit 2>&1 | grep -q "error"; then
 	ISSUES=$((ISSUES + 1))
 	echo "✗ TypeScript errors"
 else
-	SCORE=$((SCORE + 25))
+	SCORE=$((SCORE + 20))
 	echo "✓ No TypeScript errors"
 fi
 
-# 4. README has mb/ tools documented
+# 3. Extension loads without crash
 echo ""
-echo "=== README documentation ==="
-if grep -q "mb_spawn" README.md && grep -q "mb_loop" README.md; then
+echo "=== Extension load ==="
+if node --import tsx -e "import ext from './src/index.ts'; ext({ registerTool:()=>{}, registerCommand:()=>{}, on:()=>{}, sendMessage:()=>{}, events:{on:()=>()=>{}}, ui:{notify:()=>{},setStatus:()=>{}}, sessionManager:{getSessionId:()=>'test',getSessionFile:()=>null} });" 2>&1 | grep -q "Error\|error\|crash"; then
+	ISSUES=$((ISSUES + 1))
+	echo "✗ Extension crashes on load"
+else
+	SCORE=$((SCORE + 20))
+	echo "✓ Extension loads cleanly"
+fi
+
+# 4. getMyAgentId doesn't throw
+echo ""
+echo "=== getMyAgentId ==="
+if node --import tsx -e "
+import { getMyAgentId } from './src/tools.js';
+try { getMyAgentId(); console.log('FAIL: should throw'); } catch(e) { console.log('OK: throws as expected'); }
+" 2>&1 | grep -q "OK"; then
 	SCORE=$((SCORE + 15))
-	echo "✓ README documents mb/ tools"
+	echo "✓ getMyAgentId throws before registration (expected)"
 else
 	ISSUES=$((ISSUES + 1))
-	echo "✗ README missing mb/ tool documentation"
+	echo "✗ getMyAgentId behavior unexpected"
 fi
 
-# 5. GOAL.md exists and has milestones
+# 5. mb prepare triggers sendMessage
 echo ""
-echo "=== Goal specification ==="
-if [ -f "GOAL.md" ] && grep -q "Milestone" GOAL.md; then
-	SCORE=$((SCORE + 10))
-	echo "✓ GOAL.md exists with milestones"
+echo "=== /mb prepare ==="
+if node --import tsx -e "
+import ext from './src/index.ts';
+let sent = false;
+ext({
+  registerTool:()=>{}, registerCommand:(c,d)=>{ if(c==='mb') d.handler('prepare',{ui:{notify:()=>{}}}); },
+  on:()=>{}, sendMessage:()=>{ sent=true; }, events:{on:()=>()=>{}}, ui:{notify:()=>{},setStatus:()=>{}},
+  sessionManager:{getSessionId:()=>'test',getSessionFile:()=>null}
+});
+console.log(sent ? 'OK' : 'FAIL');
+" 2>&1 | grep -q "OK"; then
+	SCORE=$((SCORE + 15))
+	echo "✓ /mb prepare calls sendMessage"
 else
 	ISSUES=$((ISSUES + 1))
-	echo "✗ GOAL.md missing or incomplete"
+	echo "✗ /mb prepare doesn't trigger"
 fi
 
-# Final score
 echo ""
 echo "=========================="
 echo "SCORE: $SCORE"
 echo "ISSUES: $ISSUES"
 echo "=========================="
 
-if [ "$ISSUES" -eq 0 ] && [ "$SCORE" -ge 80 ]; then
+if [ "$SCORE" -ge 80 ] && [ "$ISSUES" -eq 0 ]; then
 	echo "✓ All criteria met"
 	exit 0
 else

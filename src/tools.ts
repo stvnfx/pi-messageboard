@@ -9,8 +9,11 @@ export function setMyAgentId(id: string) {
 }
 
 export function getMyAgentId(): string {
-	if (!myAgentId)
-		throw new Error("Agent not registered. Wait for session_start.");
+	if (!myAgentId) {
+		// Fallback: generate from random suffix
+		const suffix = Math.random().toString(16).slice(2, 6);
+		myAgentId = `agent-${suffix}`;
+	}
 	return myAgentId;
 }
 

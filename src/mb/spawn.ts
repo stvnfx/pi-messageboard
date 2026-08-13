@@ -456,11 +456,10 @@ export function stopAllHeartbeats() {
 
 function getMyAgentId(ctx: ExtensionContext): string {
 	try {
-		// Try to get from the main messageboard extension
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const { getMyAgentId: getMainId } = require("../tools.js");
 		return getMainId();
 	} catch {
-		// Fallback: generate from session
 		const sessionId = ctx.sessionManager.getSessionId?.() ?? "unknown";
 		return `agent-${sessionId.slice(0, 4)}`;
 	}

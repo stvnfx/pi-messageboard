@@ -178,7 +178,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 				Type.Number({ description: "Number of agents to spawn (default 1)" }),
 			),
 		}),
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const myId = getMyAgentId(ctx);
 			const loop = mbDb.createMbLoop(
 				myId,
@@ -276,7 +276,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 			]),
 			message: Type.String({ description: "Progress update message" }),
 		}),
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const myId = getMyAgentId(ctx);
 			const loop = mbDb.getMbLoop(params.loop_id);
 			if (!loop) {
@@ -379,7 +379,7 @@ export function registerLoopTools(pi: ExtensionAPI) {
 		parameters: Type.Object({
 			loop_id: Type.String({ description: "Loop ID to stop" }),
 		}),
-		async execute(toolCallId, params, signal, onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
 			const loop = mbDb.getMbLoop(params.loop_id);
 			if (!loop) {
 				return {
@@ -445,6 +445,7 @@ export function getLoopDirective(
 
 function getMyAgentId(ctx: ExtensionContext): string {
 	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const { getMyAgentId: getMainId } = require("../tools.js");
 		return getMainId();
 	} catch {

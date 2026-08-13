@@ -1,85 +1,93 @@
-# Goal: Improve subagent, loop and messageboard
+# Goal: Fix pi-messageboard bugs and reliability issues
 
 ## Refined Objective
 
-Make pi-messageboard a production-quality Pi extension where agents can spawn subagents, run autonomous loops, and communicate via a shared message board — all with proper testing, documentation, and error handling.
+Make pi-messageboard work reliably in live Pi sessions. The extension loads and registers 24 tools + 11 commands in isolation, but has runtime issues when loaded by Pi.
+
+## Bugs Found
+
+### Bug 1: Extension may not load in Pi
+
+- `index.ts` wrapper exists, symlink exists, npm package includes it
+- All commands work when tested manually
+- Pi may not follow symlinks or may have load order issues
+- Need to verify Pi actually loads the extension by checking `/reload` output
+
+### Bug 2: `getMyAgentId()` throws before session_start
+
+- `src/mb/loop.ts:448` and `src/mb/spawn.ts:460` use `require("../tools.js")`
+- If tools.js throws (agent not registered), getMyAgentId crashes the tool
+- The fallback `catch` block generates a generic ID, losing context
+
+### Bug 3: `getMyAgentId()` uses CommonJS require in ESM
+
+- `require("../tools.js")` may fail in ESM context
+- Should use dynamic `import()` or pass agent ID through context
+
+### Bug 4: Two separate DBs may cause confusion
+
+- `board.db` (main messageboard) and `mb.db` (subagent/loop) are separate
+- Agents registered in mb.db don't appear in board.db's agents table
+- FK constraints fail when posting messages with mb.db agent IDs
+
+### Bug 5: `/mb loop` command just says "use the tool"
+
+- Doesn't actually start a loop
+- Should either start a loop directly or provide clearer guidance
+
+### Bug 6: `pi.sendMessage()` in `/mb prepare` may not work
+
+- Command handlers don't have access to `pi` via closure in mb/index.ts
+- The `pi` variable is captured in the outer function but the handler is registered inside
 
 ## Scope
 
-### In Scope
+1. Fix extension loading in Pi (test with `/reload`)
+2. Fix getMyAgentId to not crash on missing agent
+3. Unify DB or fix FK constraints between board.db and mb.db
+4. Make `/mb loop` command actually usable
+5. Verify `/mb prepare` triggers agent correctly
 
-1. Fix the 1 failing test in tools.test.ts
-2. Add unit tests for mb/ module (spawn, loop, db)
-3. Add integration test for mb_loop lifecycle
-4. Update README with mb/ tools and commands
-5. Add error handling for edge cases (duplicate agent IDs, missing loops, DB failures)
-6. Add mb_stop_all command to halt all loops
-7. Add loop iteration logging (JSONL like pi-loop-mode)
-8. Add anti-repetition detection for loop responses
-9. Add rescue model switching for stuck loops
-10. Add goal check command for loop completion verification
+## Non-Goals
 
-### Non-Goals
-
-- Web UI or dashboard
-- Authentication/permissions
-- Real-time push notifications (polling is sufficient)
-- Cross-machine messageboard (single-machine only)
-- Migration from v1 schema (fresh DB is fine)
+- Adding new features
+- Refactoring the entire DB schema
+- Changing the tool interface
 
 ## Measurable Completion Criteria
 
-- [ ] All unit tests pass (`node --import tsx --test src/__tests__/*.test.ts` exits 0)
-- [ ] mb/ module has ≥80% line coverage
-- [ ] README documents all 19 tools and 8 commands
-- [ ] No TypeScript errors (`npx tsc --noEmit` exits 0)
-- [ ] Loop can: start → iterate → detect stuck → recover → complete
-- [ ] Spawned agents appear on board and respond to mentions
+- [ ] `/reload` in Pi shows "messageboard" in loaded extensions
+- [ ] `/mb status` works without errors
+- [ ] `mb_loop` tool starts a loop without crashing
+- [ ] `mb_spawn` tool creates agent without FK errors
+- [ ] `/mb prepare` triggers agent to write GOAL.md
+- [ ] All 30 unit tests still pass
 
-## Milestone Roadmap
+## Milestones
 
-### Milestone 1: Fix & Test (estimated: 1 iteration)
+### Milestone 1: Diagnose and fix extension loading
 
-- [ ] Fix failing tools.test.ts test
-- [ ] Add mb/db.test.ts (registerMbAgent, createMbLoop, updateMbLoop)
-- [ ] Add mb/spawn.test.ts (mb_spawn tool logic)
-- [ ] Add mb/loop.test.ts (mb_loop, mb_loop_update, mb_loop_stop)
+- Check Pi extension discovery logs
+- Verify index.ts is loaded
+- Fix any import errors
 
-### Milestone 2: Documentation (estimated: 1 iteration)
+### Milestone 2: Fix getMyAgentId crash
 
-- [ ] Update README with mb/ tools table
-- [ ] Update README with mb/ commands table
-- [ ] Add installation section for mb/ extension
-- [ ] Add examples for common workflows
+- Make it return a fallback ID without throwing
+- Or register agent properly before tools are called
 
-### Milestone 3: Loop Robustness (estimated: 2-3 iterations)
+### Milestone 3: Fix DB integration
 
-- [ ] Add loop iteration JSONL logging
-- [ ] Add anti-repetition fingerprinting (from pi-loop-mode)
-- [ ] Add stuck detection (fingerprint repeat + no-progress window)
-- [ ] Add rescue model switching for stuck loops
-- [ ] Add goal check command for until-done mode
-- [ ] Add context pressure handling (emergency compaction)
+- Either use single DB or register agents in both
+- Fix FK constraint violations
 
-### Milestone 4: Agent Communication (estimated: 1-2 iterations)
+### Milestone 4: Verify full loop workflow
 
-- [ ] Add mb_agent_reply tool (reply to board messages as spawned agent)
-- [ ] Add mb_agent_mention tool (notify specific agent)
-- [ ] Add mb_loop_status tool (get loop state for monitoring)
-- [ ] Add /mb agents command (list all spawned agents with status)
-
-## Quality Standards
-
-- **Tests:** Every tool function has at least 1 unit test
-- **Types:** No `any` types in new code (use proper interfaces)
-- **Errors:** All tool execute functions return isError: true on failure
-- **Docs:** Every tool has promptSnippet and promptGuidelines
-- **Git:** Each milestone gets its own commit with descriptive message
+- Test mb_loop → mb_loop_update → mb_loop_stop
+- Test /mb prepare → agent writes GOAL.md
 
 ## Assumptions
 
-1. SQLite (better-sqlite3) is available and reliable for single-machine use
-2. Pi extension API is stable (registerTool, registerCommand, on events)
-3. Agents are short-lived (session-scoped) — no persistent agent state needed
-4. The messageboard DB can grow unbounded (no rotation needed yet)
-5. Loop iteration delay is handled by the caller, not the extension
+1. Pi extension discovery works with symlinks
+2. The extension API (registerTool, registerCommand, sendMessage) works as documented
+3. better-sqlite3 works in Pi's runtime environment
